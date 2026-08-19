@@ -5,6 +5,7 @@ const REDIRECT_URI = 'https://voltaje-soterd.vercel.app/';
 // CREADORES AUTORIZADOS PARA EL PANEL ADMIN
 const CREATORS = [
     "x_donald",
+    "x_donald.",
     "jasdielduenodelamafiachina_97134",
     "starling102429",
     "yoaldo"
@@ -75,7 +76,8 @@ function setupUserSession(discordUser) {
         ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
         : `https://cdn.discordapp.com/embed/avatars/0.png`;
 
-    const isCreator = CREATORS.includes(discordUser.username.toLowerCase());
+    const cleanUsername = discordUser.username.trim().toLowerCase();
+    const isCreator = CREATORS.includes(cleanUsername);
 
     currentUser = {
         id: discordUser.id,
@@ -84,7 +86,7 @@ function setupUserSession(discordUser) {
         isCreator: isCreator
     };
 
-    // Guardar registro
+    // Guardar registro de usuario en localStorage
     if (!registeredUsers.some(u => u.id === currentUser.id)) {
         registeredUsers.push({
             id: currentUser.id,
@@ -95,7 +97,7 @@ function setupUserSession(discordUser) {
         localStorage.setItem('voltaje_users', JSON.stringify(registeredUsers));
     }
 
-    // Actualizar interfaz
+    // Actualizar interfaz tras autenticación exitosa
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
 
@@ -103,6 +105,7 @@ function setupUserSession(discordUser) {
     document.getElementById('user-avatar').src = currentUser.avatar;
     document.getElementById('user-role').innerText = isCreator ? "Creador / Admin" : "Cliente VIP";
 
+    // Mostrar pestaña de administración si es Creador / Admin
     if (isCreator) {
         document.getElementById('admin-nav').classList.remove('hidden');
     }
