@@ -3,196 +3,383 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tienda Oficial & Servicios</title>
-    <!-- Fuentes e Iconos (FontAwesome) -->
+    <title>Voltaje Stores | MTA:SA Resources</title>
+    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <!-- Fondo Animado Moderno -->
     <div class="bg-glow"></div>
 
-    <!-- Navegación -->
-    <nav class="navbar">
-        <div class="logo"><i class="fa-solid fa-fire"></i> MI TIENDA VIP</div>
-        <ul class="nav-links">
-            <li><a href="#inicio"><i class="fa-solid fa-house"></i> Inicio</a></li>
-            <li><a href="#top-compradores"><i class="fa-solid fa-trophy"></i> Ranking</a></li>
-            <li><a href="#terminos"><i class="fa-solid fa-file-contract"></i> Términos</a></li>
-        </ul>
-    </nav>
-
-    <!-- SECCIÓN DE INICIO (HERO BANNER IMPACTANTE) -->
-    <section id="inicio" class="hero-section">
-        <div class="hero-content">
-            <span class="badge-tag">🔥 La tienda #1 de la comunidad</span>
-            <h1>LLEVA TU EXPERIENCIA AL <span class="highlight">SIGUIENTE NIVEL</span></h1>
-            <p>Descubre beneficios exclusivos, rangos VIP, vehículos únicos y artículos especiales diseñados para brindarte el máximo dominio y entretenimiento.</p>
+    <!-- PANTALLA DE LOGIN DISCORD -->
+    <div id="login-screen" class="login-container">
+        <div class="login-card glass">
+            <div class="logo-badge"><i class="fa-solid fa-bolt"></i></div>
+            <h1>VOLTAJE <span>STORES</span></h1>
+            <p>La plataforma definitiva de recursos, scripts y mapeos de alta gama para MTA:SA.</p>
             
-            <div class="hero-buttons">
-                <a href="#tienda" class="btn btn-primary"><i class="fa-solid fa-cart-shopping"></i> Explorar Tienda</a>
-                <a href="#top-compradores" class="btn btn-secondary"><i class="fa-solid fa-crown"></i> Ver Ranking VIP</a>
-            </div>
-
-            <!-- Estadísticas en vivo -->
-            <div class="stats-container">
-                <div class="stat-card">
-                    <i class="fa-solid fa-users"></i>
-                    <h3>+5,000</h3>
-                    <p>Clientes Satisfechos</p>
-                </div>
-                <div class="stat-card">
-                    <i class="fa-solid fa-bolt"></i>
-                    <h3>Instantánea</h3>
-                    <p>Entrega Automática</p>
-                </div>
-                <div class="stat-card">
-                    <i class="fa-solid fa-headset"></i>
-                    <h3>24/7</h3>
-                    <p>Soporte Activo</p>
-                </div>
-            </div>
+            <button id="discord-login-btn" onclick="loginWithDiscord()" class="btn-discord-real">
+                <i class="fa-brands fa-discord"></i> Conectar con Discord
+            </button>
+            <span class="auth-note"><i class="fa-solid fa-shield-halved"></i> Autenticación segura directa vía Discord OAuth2</span>
         </div>
-    </section>
+    </div>
 
-    <!-- CARACTERÍSTICAS Y GARANTÍAS DE LA TIENDA -->
-    <section class="features-section">
-        <h2 class="section-title"><i class="fa-solid fa-star"></i> ¿Por qué comprar con nosotros?</h2>
-        <div class="features-grid">
-            <div class="feature-box">
-                <i class="fa-solid fa-shield-halved feature-icon"></i>
-                <h3>Pagos 100% Seguros</h3>
-                <p>Procesamos tus compras con cifrado SSL y pasarelas de pago verificadas internacionalmente.</p>
-            </div>
-            <div class="feature-box">
-                <i class="fa-solid fa-wand-magic-sparkles feature-icon"></i>
-                <h3>Contenido Exclusivo</h3>
-                <p>Accede a ventajas e ítems totalmente personalizados que no encontrarás en ningún otro lugar.</p>
-            </div>
-            <div class="feature-box">
-                <i class="fa-solid fa-comments feature-icon"></i>
-                <h3>Soporte Personalizado</h3>
-                <p>¿Tienes dudas con tu compra? Nuestro equipo de atención te atiende rápidamente por Discord o Ticket.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- RANKING DE TOP COMPRADORES -->
-    <section id="top-compradores" class="ranking-section">
-        <h2 class="section-title"><i class="fa-solid fa-trophy"></i> Top Compradores VIP</h2>
-        <p class="section-subtitle">Reconocimiento especial a los miembros que más apoyan a nuestra comunidad.</p>
-
-        <div class="ranking-container">
-            <!-- Puesto 2 (Plata) -->
-            <div class="ranking-card rank-2">
-                <div class="crown"><i class="fa-solid fa-crown"></i></div>
-                <div class="avatar-holder">
-                    <img src="https://via.placeholder.com/80" alt="Usuario Top 2">
+    <!-- APLICACIÓN PRINCIPAL -->
+    <div id="app" class="hidden">
+        <header class="navbar glass">
+            <div class="logo"><i class="fa-solid fa-bolt"></i> VOLTAJE <span>STORES</span></div>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#" class="nav-btn active" onclick="showSection('info', this)"><i class="fa-solid fa-house"></i> Inicio</a></li>
+                    <li><a href="#" class="nav-btn" onclick="showSection('tienda', this)"><i class="fa-solid fa-store"></i> Tienda</a></li>
+                    <li><a href="#" class="nav-btn" onclick="showSection('creadores', this)"><i class="fa-solid fa-code"></i> Creadores</a></li>
+                    <li><a href="#" class="nav-btn" onclick="showSection('carrito', this)"><i class="fa-solid fa-cart-shopping"></i> Carrito (<span id="cart-count">0</span>)</a></li>
+                    <li><a href="#" class="nav-btn" onclick="showSection('perfil', this)"><i class="fa-solid fa-user"></i> Mi Perfil</a></li>
+                    <li><a href="#" class="nav-btn" onclick="showSection('terminos', this)"><i class="fa-solid fa-file-contract"></i> Términos</a></li>
+                    <li id="admin-nav" class="hidden"><a href="#" class="nav-btn admin-link" onclick="showSection('admin', this)"><i class="fa-solid fa-crown"></i> Panel Creador</a></li>
+                </ul>
+            </nav>
+            <div class="user-card glass" onclick="showSection('perfil')" style="cursor: pointer;" title="Ir a mi perfil">
+                <img id="user-avatar" src="" alt="Avatar">
+                <div class="user-details">
+                    <span id="user-name">Cargando...</span>
+                    <small id="user-role">Cliente</small>
                 </div>
-                <span class="rank-badge">#2</span>
-                <h3>Alexander_RP</h3>
-                <p class="purchases-count"><i class="fa-solid fa-bag-shopping"></i> 38 Compras</p>
-                <span class="vip-status">VIP Legendario</span>
+                <button onclick="logout(); event.stopPropagation();" class="btn-logout" title="Cerrar Sesión"><i class="fa-solid fa-power-off"></i></button>
             </div>
+        </header>
 
-            <!-- Puesto 1 (Oro) -->
-            <div class="ranking-card rank-1">
-                <div class="crown"><i class="fa-solid fa-crown"></i></div>
-                <div class="avatar-holder">
-                    <img src="https://via.placeholder.com/100" alt="Usuario Top 1">
+        <main class="content-container">
+            <!-- SECCIÓN INFORMACIÓN -->
+            <section id="info" class="section active">
+                <div class="hero-banner glass">
+                    <div class="hero-badge"><i class="fa-solid fa-fire"></i> #1 en recursos MTA:SA de República Dominicana</div>
+                    <h2>MTA:SA DEVELOPMENT <span>NEXT-GEN</span></h2>
+                    <p>Optimización extrema, bases de datos eficientes e interfaces CEF avanzadas creadas por desarrolladores dominicanos para llevar tu servidor al siguiente nivel.</p>
+                    <div class="hero-cta-group">
+                        <button class="btn-cta-primary" onclick="showSection('tienda', document.querySelectorAll('.nav-btn')[1])"><i class="fa-solid fa-store"></i> Explorar Tienda</button>
+                        <button class="btn-cta-secondary" onclick="showSection('creadores', document.querySelectorAll('.nav-btn')[2])"><i class="fa-solid fa-code"></i> Conocer al Equipo</button>
+                    </div>
                 </div>
-                <span class="rank-badge">#1</span>
-                <h3>Carlos_ATR</h3>
-                <p class="purchases-count"><i class="fa-solid fa-bag-shopping"></i> 54 Compras</p>
-                <span class="vip-status gold-status">LÍDER SUPREMO</span>
-            </div>
 
-            <!-- Puesto 3 (Bronce) -->
-            <div class="ranking-card rank-3">
-                <div class="crown"><i class="fa-solid fa-crown"></i></div>
-                <div class="avatar-holder">
-                    <img src="https://via.placeholder.com/80" alt="Usuario Top 3">
+                <div class="stats-grid">
+                    <div class="stat-box glass">
+                        <i class="fa-solid fa-cubes"></i>
+                        <h3>+50</h3>
+                        <p>Recursos Exclusivos</p>
+                    </div>
+                    <div class="stat-box glass">
+                        <i class="fa-solid fa-microchip"></i>
+                        <h3>100%</h3>
+                        <p>Optimización Lua</p>
+                    </div>
+                    <div class="stat-box glass">
+                        <i class="fa-solid fa-headset"></i>
+                        <h3>24/7</h3>
+                        <p>Soporte VIP</p>
+                    </div>
                 </div>
-                <span class="rank-badge">#3</span>
-                <h3>Mateo_Gamer</h3>
-                <p class="purchases-count"><i class="fa-solid fa-bag-shopping"></i> 29 Compras</p>
-                <span class="vip-status">VIP Elite</span>
-            </div>
-        </div>
 
-        <!-- Tabla de puestos siguientes -->
-        <div class="table-wrapper">
-            <table class="ranking-table">
-                <thead>
-                    <tr>
-                        <th>Posición</th>
-                        <th>Usuario</th>
-                        <th>Nivel VIP</th>
-                        <th>Compras Realizadas</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><strong>#4</strong></td>
-                        <td>Dominican_King</td>
-                        <td>VIP Oro</td>
-                        <td>22 Compras</td>
-                    </tr>
-                    <tr>
-                        <td><strong>#5</strong></td>
-                        <td>GamerPro_2026</td>
-                        <td>VIP Plata</td>
-                        <td>18 Compras</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
+                <div class="section-header" style="margin-top:45px;">
+                    <h2>POR QUÉ <span>ELEGIRNOS</span></h2>
+                    <p>Lo que nos diferencia de cualquier otra tienda de recursos MTA:SA.</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card glass">
+                        <i class="fa-solid fa-bolt"></i>
+                        <h4>Entrega Instantánea</h4>
+                        <p>Tu enlace de descarga queda disponible en tu perfil automáticamente al finalizar la compra.</p>
+                    </div>
+                    <div class="feature-card glass">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <h4>Código Verificado</h4>
+                        <p>Cada script y mapeo pasa por pruebas internas de rendimiento antes de publicarse en la tienda.</p>
+                    </div>
+                    <div class="feature-card glass">
+                        <i class="fa-solid fa-comments"></i>
+                        <h4>Soporte Real</h4>
+                        <p>Un equipo de desarrolladores activo en Discord para resolver dudas técnicas y errores base.</p>
+                    </div>
+                    <div class="feature-card glass">
+                        <i class="fa-solid fa-rotate"></i>
+                        <h4>Actualizaciones Gratis</h4>
+                        <p>Las mejoras y correcciones de un recurso ya comprado no tienen ningún costo adicional.</p>
+                    </div>
+                </div>
 
-    <!-- TÉRMINOS Y CONDICIONES (SECCIÓN COMPLETA Y PROFESIONAL) -->
-    <section id="terminos" class="terms-section">
-        <h2 class="section-title"><i class="fa-solid fa-scale-balanced"></i> Términos y Condiciones del Servicio</h2>
-        <p class="section-subtitle">Por favor, lee detenidamente nuestras políticas antes de realizar cualquier transacción.</p>
+                <div class="ranking-section">
+                    <div class="section-header">
+                        <h2>TOP <span>COMPRADORES</span></h2>
+                        <p>Los usuarios más activos de la comunidad Voltaje Stores.</p>
+                    </div>
+                    <div id="ranking-list" class="ranking-list"></div>
+                </div>
+            </section>
 
-        <div class="terms-grid">
-            <div class="term-card">
-                <h3><i class="fa-solid fa-rotate-left"></i> 1. Política de Reembolsos</h3>
-                <p>Todas las transacciones realizadas en esta plataforma son <strong>definitivas y no reembolsables</strong>. Al adquirir un bien digital o beneficio dentro de la plataforma, el usuario reconoce que el servicio se entrega de manera inmediata y renuncia a cualquier derecho de retracto.</p>
-            </div>
+            <!-- SECCIÓN TIENDA -->
+            <section id="tienda" class="section">
+                <div class="section-header">
+                    <h2>CATÁLOGO DE <span>RECURSOS</span></h2>
+                    <div class="filter-bar glass">
+                        <button class="filter-btn active" onclick="filterResources('all', this)">Todos</button>
+                        <button class="filter-btn" onclick="filterResources('script', this)">Scripts</button>
+                        <button class="filter-btn" onclick="filterResources('mapeo', this)">Mapeos</button>
+                        <button class="filter-btn" onclick="filterResources('combo', this)">Combos</button>
+                    </div>
+                </div>
+                <div id="resources-grid" class="resources-grid"></div>
+            </section>
 
-            <div class="term-card">
-                <h3><i class="fa-solid fa-handshake-slash"></i> 2. Disputas y Chargebacks</h3>
-                <p>Cualquier intento de cancelación de cargo (chargeback) o disputa no autorizada a través de PayPal, entidades bancarias o procesadores de pago resultará en la <strong>suspensión permanente e irreversible</strong> de la cuenta de usuario en la tienda y plataformas asociadas.</p>
-            </div>
+            <!-- SECCIÓN CREADORES -->
+            <section id="creadores" class="section">
+                <div class="section-header">
+                    <h2>DESARROLLADORES <span>OFICIALES</span></h2>
+                    <p>El equipo detrás del desarrollo y la arquitectura de Voltaje Stores.</p>
+                </div>
+                <div class="creators-grid">
+                    <div class="creator-card glass">
+                        <div class="creator-header">
+                            <img src="https://cdn.discordapp.com/embed/avatars/0.png" id="creator-avatar-x_donald" class="creator-profile-img" alt="x_donald.">
+                            <span class="role-badge red">Master Scripter</span>
+                        </div>
+                        <h3>x_donald.</h3>
+                        <p>Especialista en desarrollo backend Lua, sistemas complejos de optimización y bases de datos MySQL nativas.</p>
+                        <div class="discord-tag-box"><i class="fa-brands fa-discord"></i> x_donald.</div>
+                    </div>
 
-            <div class="term-card">
-                <h3><i class="fa-solid fa-user-gear"></i> 3. Responsabilidad de la Cuenta</h3>
-                <p>El usuario es el único responsable de la seguridad de su cuenta y de mantener la confidencialidad de sus credenciales. La tienda no se hace responsable por pérdidas resultantes de negligencia, hackeos o accesos no autorizados por parte de terceros.</p>
-            </div>
+                    <div class="creator-card glass">
+                        <div class="creator-header">
+                            <img src="https://cdn.discordapp.com/embed/avatars/1.png" id="creator-avatar-jasdiel" class="creator-profile-img" alt="jasdiel">
+                            <span class="role-badge cyan">Lead Mapper 3D</span>
+                        </div>
+                        <h3>jasdielduenodelamafiachina_97134</h3>
+                        <p>Diseñador de mapeos HD, interiores personalizados, zonas de guerra y estructuras optimizadas sin drop de FPS.</p>
+                        <div class="discord-tag-box"><i class="fa-brands fa-discord"></i> jasdielduenodelamafiachina_97134</div>
+                    </div>
 
-            <div class="term-card">
-                <h3><i class="fa-solid fa-gavel"></i> 4. Sanciones e Infracciones</h3>
-                <p>La compra de cualquier beneficio VIP o ítem digital no exime al usuario del cumplimiento de las normas de la comunidad. El incumplimiento grave de las reglas puede acarrear sanciones o baneos, sin derecho a indemnización ni reembolso.</p>
-            </div>
+                    <div class="creator-card glass">
+                        <div class="creator-header">
+                            <img src="https://cdn.discordapp.com/embed/avatars/2.png" id="creator-avatar-starling" class="creator-profile-img" alt="starling">
+                            <span class="role-badge purple">UI/UX Specialist</span>
+                        </div>
+                        <h3>starling102429</h3>
+                        <p>Creador de paneles CEF web dinámicos en HTML/CSS/JS integrados perfectamente con Lua MTA.</p>
+                        <div class="discord-tag-box"><i class="fa-brands fa-discord"></i> starling102429</div>
+                    </div>
 
-            <div class="term-card">
-                <h3><i class="fa-solid fa-gears"></i> 5. Modificaciones del Servicio</h3>
-                <p>Nos reservamos el derecho de modificar, actualizar o discontinuar productos, precios o ventajas de los paquetes en cualquier momento con el fin de mantener el equilibrio del servicio. Se procurará notificar los cambios con antelación.</p>
-            </div>
+                    <div class="creator-card glass">
+                        <div class="creator-header">
+                            <img src="https://cdn.discordapp.com/embed/avatars/3.png" id="creator-avatar-yoaldo" class="creator-profile-img" alt="yoaldo">
+                            <span class="role-badge green">Scripter & Admin</span>
+                        </div>
+                        <h3>yoaldo</h3>
+                        <p>Desarrollador de sistemas de facciones, inventarios avanzados, mecánicas de rol y soporte técnico.</p>
+                        <div class="discord-tag-box"><i class="fa-brands fa-discord"></i> yoaldo</div>
+                    </div>
+                </div>
+            </section>
 
-            <div class="term-card">
-                <h3><i class="fa-solid fa-truck-fast"></i> 6. Entrega de Bienes Digitales</h3>
-                <p>La mayoría de las compras se procesan de forma automática. En caso de experimentar demoras o fallos técnicos, el usuario debe abrir un ticket de soporte oficial presentando su comprobante de pago con ID de transacción.</p>
-            </div>
-        </div>
-    </section>
+            <!-- SECCIÓN CARRITO -->
+            <section id="carrito" class="section">
+                <div class="section-header">
+                    <h2>TU CARRITO DE <span>COMPRAS</span></h2>
+                </div>
+                <div class="cart-container glass">
+                    <div id="cart-items" class="cart-items-list"></div>
+                    <div class="cart-summary">
+                        <h3>TOTAL: <span id="cart-total">$0.00</span></h3>
+                        <button onclick="checkout()" class="btn-glow">PROCESAR COMPRA</button>
+                    </div>
+                </div>
+            </section>
 
-    <!-- FOOTER -->
-    <footer>
-        <p>&copy; 2026 Mi Tienda VIP. Todos los derechos reservados.</p>
-    </footer>
+            <!-- SECCIÓN MI PERFIL -->
+            <section id="perfil" class="section">
+                <div class="section-header">
+                    <h2>MI PERFIL DE <span>USUARIO</span></h2>
+                </div>
+                <div class="profile-layout">
+                    <!-- Pestañas de Perfil -->
+                    <div class="profile-tabs glass">
+                        <button class="profile-tab-btn active" onclick="switchProfileTab('edit', this)"><i class="fa-solid fa-user-pen"></i> Editar Perfil</button>
+                        <button class="profile-tab-btn" onclick="switchProfileTab('purchases', this)"><i class="fa-solid fa-box-open"></i> Productos Obtenidos</button>
+                        <button class="profile-tab-btn" onclick="switchProfileTab('downloads', this)"><i class="fa-solid fa-download"></i> Enlaces de Descarga</button>
+                    </div>
 
+                    <!-- Contenido Perfil -->
+                    <div class="profile-content glass">
+                        <!-- 1. Editar Perfil -->
+                        <div id="tab-edit" class="profile-tab-content active">
+                            <h3>Ajustes de Perfil</h3>
+                            <form id="edit-profile-form">
+                                <div class="form-group">
+                                    <label>Nombre de Usuario</label>
+                                    <input type="text" id="profile-input-username" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Foto de Perfil (Subir imagen desde tu dispositivo)</label>
+                                    <input type="file" id="profile-input-avatar" accept="image/*">
+                                </div>
+                                <button type="submit" class="btn-glow">GUARDAR CAMBIOS</button>
+                            </form>
+                        </div>
+
+                        <!-- 2. Productos Obtenidos -->
+                        <div id="tab-purchases" class="profile-tab-content">
+                            <h3>Mis Compras Registradas</h3>
+                            <div id="owned-products-grid" class="resources-grid"></div>
+                        </div>
+
+                        <!-- 3. Enlaces de Descarga -->
+                        <div id="tab-downloads" class="profile-tab-content">
+                            <h3>Enlaces Directos de Descarga</h3>
+                            <ul id="downloads-list" class="downloads-list"></ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN TÉRMINOS -->
+            <section id="terminos" class="section">
+                <div class="section-header">
+                    <h2>TÉRMINOS Y <span>CONDICIONES</span></h2>
+                </div>
+                <div class="terms-container glass">
+                    <p class="terms-intro">Al acceder, registrarte o realizar cualquier compra dentro de Voltaje Stores, aceptas de forma íntegra y sin reservas los siguientes términos y condiciones. Te recomendamos leerlos completos antes de adquirir cualquier recurso.</p>
+
+                    <div class="term-block">
+                        <h3><i class="fa-solid fa-file-signature"></i> 1. Licencia de Uso</h3>
+                        <p>Todos los recursos comprados en Voltaje Stores otorgan una licencia única, no exclusiva e intransferible para ser utilizados en un solo servidor MTA:SA activo.</p>
+                        <ul>
+                            <li><strong>Prohibida la reventa:</strong> no puedes revender, sublicenciar ni comercializar el recurso ni sus archivos fuente, modificados o no.</li>
+                            <li><strong>Prohibida la filtración (leak):</strong> compartir públicamente los archivos en foros, canales de Discord, Mega públicos u otras plataformas está estrictamente prohibido.</li>
+                            <li><strong>Uso multiservidor:</strong> si necesitas usar un mismo recurso en más de un servidor, debes adquirir una licencia adicional o solicitar autorización al creador.</li>
+                        </ul>
+                        <div class="terms-warning"><i class="fa-solid fa-triangle-exclamation"></i> El incumplimiento de esta cláusula resulta en la revocación inmediata y permanente del acceso a la cuenta, sin derecho a reembolso.</div>
+                    </div>
+
+                    <div class="term-block">
+                        <h3><i class="fa-solid fa-ban"></i> 2. Política de No Reembolso</h3>
+                        <p>Al tratarse de contenido digital descargable (Scripts, Mapeos, Interfaces CEF, Combos), no se procesan reembolsos una vez que el enlace de descarga ha sido entregado y/o visualizado dentro del perfil del usuario, independientemente de si el archivo fue descargado o no.</p>
+                        <p>Las únicas excepciones son: cobro duplicado por error del sistema, o recurso comprobadamente no funcional que el equipo de soporte no logre solucionar en un plazo de 5 días hábiles.</p>
+                    </div>
+
+                    <div class="term-block">
+                        <h3><i class="fa-solid fa-screwdriver-wrench"></i> 3. Soporte y Modificaciones</h3>
+                        <p>El soporte técnico cubre únicamente errores base del recurso tal como fue entregado originalmente. Las modificaciones realizadas por terceros que alteren la estructura del código, la base de datos o los archivos de mapeo anularán automáticamente la garantía de soporte.</p>
+                        <p>El tiempo estimado de respuesta para tickets de soporte es de 24 a 72 horas a través de nuestro servidor de Discord.</p>
+                    </div>
+
+                    <div class="term-block">
+                        <h3><i class="fa-solid fa-copyright"></i> 4. Propiedad Intelectual</h3>
+                        <p>Todo el código fuente, mapeos, interfaces gráficas y diseños publicados en Voltaje Stores son propiedad exclusiva de sus respectivos creadores. La compra de un recurso otorga un derecho de uso, no una transferencia de propiedad ni de derechos de autor.</p>
+                    </div>
+
+                    <div class="term-block">
+                        <h3><i class="fa-brands fa-discord"></i> 5. Cuentas, Acceso y Autenticación</h3>
+                        <p>El acceso a la plataforma se realiza exclusivamente mediante autenticación OAuth2 de Discord. Eres responsable de mantener la seguridad de tu cuenta de Discord, ya que cualquier actividad realizada desde ella dentro de Voltaje Stores se considerará autorizada por ti.</p>
+                        <ul>
+                            <li>Se prohíbe la creación de múltiples cuentas para evadir sanciones o límites de compra.</li>
+                            <li>El equipo se reserva el derecho de solicitar verificación adicional ante actividad sospechosa.</li>
+                        </ul>
+                    </div>
+
+                    <div class="term-block">
+                        <h3><i class="fa-solid fa-user-shield"></i> 6. Conducta y Uso Prohibido</h3>
+                        <p>Está terminantemente prohibido dentro de la plataforma y sus canales asociados:</p>
+                        <ul>
+                            <li>Suplantar la identidad de un creador, administrador o miembro del equipo.</li>
+                            <li>Publicar contenido ofensivo, discriminatorio o fraudulento en perfiles, nombres de usuario o imágenes.</li>
+                            <li>Intentar explotar vulnerabilidades del sitio, el panel admin o el sistema de pagos.</li>
+                            <li>Usar bots, scripts automatizados o cualquier método no autorizado para interactuar con la plataforma.</li>
+                        </ul>
+                    </div>
+
+                    <div class="term-block">
+                        <h3><i class="fa-solid fa-tags"></i> 7. Precios, Promociones y Disponibilidad</h3>
+                        <p>Voltaje Stores se reserva el derecho de modificar precios, aplicar descuentos temporales o descontinuar un recurso en cualquier momento sin previo aviso. Los precios ya pagados al momento de una compra no se ven afectados por cambios posteriores.</p>
+                    </div>
+
+                    <div class="term-block">
+                        <h3><i class="fa-solid fa-server"></i> 8. Disponibilidad del Servicio</h3>
+                        <p>Nos esforzamos por mantener la plataforma disponible las 24 horas, pero no garantizamos un funcionamiento ininterrumpido. Podemos suspender temporalmente el acceso por mantenimiento, actualizaciones o causas de fuerza mayor sin generar derecho a compensación.</p>
+                    </div>
+
+                    <div class="term-block">
+                        <h3><i class="fa-solid fa-scale-balanced"></i> 9. Limitación de Responsabilidad</h3>
+                        <p>Voltaje Stores no se hace responsable por pérdidas de datos, caídas de servidor, conflictos con otros recursos de terceros, o cualquier daño indirecto derivado del uso de los recursos adquiridos. El uso de cada script o mapeo es bajo tu propio riesgo.</p>
+                    </div>
+
+                    <div class="term-block">
+                        <h3><i class="fa-solid fa-lock"></i> 10. Privacidad y Datos</h3>
+                        <p>Al iniciar sesión con Discord recopilamos tu nombre de usuario, identificador y avatar públicos con el único fin de gestionar tu cuenta, tus compras y mostrar tu progreso dentro de la plataforma (incluyendo el ranking de compradores).</p>
+                        <div class="terms-note"><i class="fa-solid fa-circle-info"></i> Puedes personalizar tu nombre y foto de perfil visibles dentro de la plataforma desde la sección "Mi Perfil", sin que esto afecte tu cuenta real de Discord.</div>
+                    </div>
+
+                    <div class="term-block">
+                        <h3><i class="fa-solid fa-user-slash"></i> 11. Suspensión y Terminación de Cuenta</h3>
+                        <p>Nos reservamos el derecho de suspender o eliminar el acceso de cualquier usuario que incumpla estos términos, sin necesidad de aviso previo y sin derecho a reembolso de compras ya realizadas.</p>
+                    </div>
+
+                    <div class="term-block">
+                        <h3><i class="fa-solid fa-pen-to-square"></i> 12. Modificaciones de los Términos</h3>
+                        <p>Estos términos pueden actualizarse periódicamente para reflejar cambios en la plataforma o en la normativa aplicable. El uso continuado de Voltaje Stores después de una actualización implica la aceptación de los nuevos términos.</p>
+                    </div>
+
+                    <p class="terms-updated"><i class="fa-solid fa-clock"></i> Última actualización de estos términos: 2026.</p>
+                </div>
+            </section>
+
+            <!-- SECCIÓN PANEL DE CREADORES (ADMIN) -->
+            <section id="admin" class="section">
+                <div class="section-header">
+                    <h2>PANEL DE CREADORES <span>(ADMIN)</span></h2>
+                </div>
+                <div class="admin-grid">
+                    <div class="card glass">
+                        <h3>Publicar Nuevo Recurso</h3>
+                        <form id="add-resource-form">
+                            <div class="form-group">
+                                <input type="text" id="res-name" placeholder="Nombre del Recurso" required>
+                            </div>
+                            <div class="form-group-row">
+                                <select id="res-category" required>
+                                    <option value="script">Script Lua</option>
+                                    <option value="mapeo">Mapeo 3D</option>
+                                    <option value="combo">Combo Pack</option>
+                                </select>
+                                <input type="number" id="res-price" step="0.01" placeholder="Precio ($ USD)" required>
+                            </div>
+                            
+                            <!-- SELECCIÓN DE IMAGEN DESDE EL DISPOSITIVO -->
+                            <div class="form-group">
+                                <label style="display: block; margin-bottom: 5px; color: var(--neon-primary); font-size:0.9rem;">Imagen del Recurso (Seleccionar de tu dispositivo):</label>
+                                <input type="file" id="res-image-file" accept="image/*" required>
+                            </div>
+
+                            <div class="form-group">
+                                <input type="url" id="res-link" placeholder="Enlace de Descarga (Mega, Drive, Mediafire)" required>
+                            </div>
+                            <div class="form-group">
+                                <textarea id="res-desc" rows="4" placeholder="Descripción del recurso e instrucciones..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn-glow">PUBLICAR EN TIENDA</button>
+                        </form>
+                    </div>
+
+                    <div class="card glass">
+                        <h3>Usuarios Registrados (Discord)</h3>
+                        <div class="user-list-wrapper">
+                            <ul id="user-list" class="user-list"></ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>

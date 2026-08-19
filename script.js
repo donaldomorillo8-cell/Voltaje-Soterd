@@ -116,6 +116,7 @@ function setupUserSession(discordUser) {
     renderResources('all');
     renderUsers();
     renderOwnedProducts();
+    renderRanking();
 }
 
 function setCreatorAvatar(elementId, avatarUrl) {
@@ -275,8 +276,46 @@ function checkout() {
     cart = [];
     updateCart();
     renderOwnedProducts();
+    renderRanking();
     showSection('perfil');
     switchProfileTab('purchases');
+}
+
+// RANKING DE TOP COMPRADORES (SECCIÓN INICIO)
+function renderRanking() {
+    const container = document.getElementById('ranking-list');
+    if (!container) return;
+
+    const ranked = registeredUsers
+        .map(u => ({
+            ...u,
+            count: (userPurchases[u.id] || []).length
+        }))
+        .filter(u => u.count > 0)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+
+    container.innerHTML = '';
+
+    if (ranked.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); padding:10px 5px;">Aún no hay compras registradas. ¡Sé el primero en aparecer en el ranking!</p>';
+        return;
+    }
+
+    ranked.forEach((u, index) => {
+        const item = document.createElement('div');
+        item.className = 'ranking-item glass';
+        item.innerHTML = `
+            <div class="rank-position">#${index + 1}</div>
+            <img src="${u.avatar}" alt="${u.username}">
+            <div class="ranking-user">
+                <strong>${u.username}</strong>
+                <small>Miembro desde ${u.date}</small>
+            </div>
+            <div class="ranking-count">${u.count} compra${u.count !== 1 ? 's' : ''}</div>
+        `;
+        container.appendChild(item);
+    });
 }
 
 // RENDER DE PRODUCTOS OBTENIDOS Y ENLACES
