@@ -207,6 +207,18 @@ function saveProfileChanges(username, avatar) {
     alert("¡Perfil actualizado con éxito!");
 }
 
+// Escapa texto para poder insertarlo de forma segura dentro de atributos/HTML
+// (evita que comillas, < , > , etc. en el nombre o la descripción de un recurso
+// rompan el HTML generado y dejen botones sin funcionar)
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // RENDER DE PRODUCTOS EN LA TIENDA
 function renderResources(filter, btn) {
     if(btn) {
@@ -222,19 +234,37 @@ function renderResources(filter, btn) {
     list.forEach(res => {
         const card = document.createElement('div');
         card.className = 'res-card glass';
+        // Usamos data-id en vez de onclick="...${res.id}..." para que el id
+        // (o cualquier caracter especial en el nombre/descripción) nunca pueda
+        // romper el atributo onclick generado.
         card.innerHTML = `
-            <img src="${res.image}" alt="${res.name}" onclick="openResourceModal(${res.id})">
+            <img src="${res.image}" alt="${escapeHtml(res.name)}" data-action="open" data-id="${res.id}">
             <div class="res-content">
-                <h3 onclick="openResourceModal(${res.id})">${res.name}</h3>
-                <p>${res.desc}</p>
-                <button onclick="openResourceModal(${res.id})" class="btn-details"><i class="fa-solid fa-circle-info"></i> VER DETALLES COMPLETOS</button>
+                <h3 data-action="open" data-id="${res.id}">${escapeHtml(res.name)}</h3>
+                <p>${escapeHtml(res.desc)}</p>
+                <button data-action="open" data-id="${res.id}" class="btn-details"><i class="fa-solid fa-circle-info"></i> VER DETALLES COMPLETOS</button>
                 <div class="res-price">$${res.price.toFixed(2)} USD</div>
-                <button onclick="addToCart(${res.id})" class="btn-glow">AÑADIR AL CARRITO</button>
+                <button data-action="add" data-id="${res.id}" class="btn-glow">AÑADIR AL CARRITO</button>
             </div>
         `;
         grid.appendChild(card);
     });
 }
+
+// DELEGACIÓN DE EVENTOS: un solo listener para toda la grilla de recursos.
+// Así los botones "AÑADIR AL CARRITO" y "VER DETALLES" siempre funcionan,
+// sin importar cuántas veces se vuelva a dibujar la grilla.
+document.getElementById('resources-grid').addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+
+    const id = Number(target.dataset.id);
+    if (target.dataset.action === 'open') {
+        openResourceModal(id);
+    } else if (target.dataset.action === 'add') {
+        addToCart(id);
+    }
+});
 
 // MODAL DE DETALLES DE UN RECURSO (para descripciones largas)
 function openResourceModal(id) {
@@ -247,11 +277,18 @@ function openResourceModal(id) {
     document.getElementById('modal-res-name').innerText = res.name;
     document.getElementById('modal-res-desc').innerText = res.desc;
     document.getElementById('modal-res-price').innerText = `$${res.price.toFixed(2)} USD`;
-    document.getElementById('modal-add-btn').setAttribute('onclick', `addToCart(${res.id})`);
+    document.getElementById('modal-add-btn').dataset.id = res.id;
 
     document.getElementById('resource-modal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 }
+
+// Listener único para el botón "AÑADIR AL CARRITO" del modal (se configura una
+// sola vez; openResourceModal solo actualiza qué id tiene guardado el botón).
+document.getElementById('modal-add-btn').addEventListener('click', () => {
+    const id = Number(document.getElementById('modal-add-btn').dataset.id);
+    if (!Number.isNaN(id)) addToCart(id);
+});
 
 function closeResourceModal() {
     document.getElementById('resource-modal').classList.add('hidden');
@@ -265,6 +302,14 @@ function filterResources(category, btn) {
 // CARRITO DE COMPRAS Y PROCESO DE PAGO
 function addToCart(id) {
     const item = resources.find(r => r.id === id);
+
+    // Si el recurso ya no existe (por ejemplo, fue eliminado por un admin
+    // mientras la página seguía abierta) no rompemos la app: avisamos y salimos.
+    if (!item) {
+        alert("Ese recurso ya no está disponible. Actualiza la página e intenta de nuevo.");
+        return;
+    }
+
     cart.push(item);
     localStorage.setItem('voltaje_cart', JSON.stringify(cart));
     updateCart();
