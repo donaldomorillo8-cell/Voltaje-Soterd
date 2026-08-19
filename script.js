@@ -1,4 +1,4 @@
-// CONFIGURACIÓN OFICIAL DE DISCORD OAUTH2 (CLIENT ID INTEGRADO)
+// CONFIGURACIÓN OFICIAL DE DISCORD OAUTH2 (VERCEL PRODUCTION)
 const CLIENT_ID = '1517661392369483907'; 
 const REDIRECT_URI = 'https://voltaje-soterd.vercel.app/';
 
@@ -112,7 +112,7 @@ function setupUserSession(discordUser) {
 }
 
 function logout() {
-    window.location.href = window.location.pathname;
+    window.location.href = REDIRECT_URI;
 }
 
 // NAVEGACIÓN ENTRE SECCIONES
