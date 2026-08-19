@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voltaje Stores | MTA:SA Resources</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="bg-glow"></div>
+
+    <!-- PANTALLA DE LOGIN DISCORD -->
+    <div id="login-screen" class="login-container">
+        <div class="login-card glass">
+            <div class="logo-badge"><i class="fa-solid fa-bolt"></i></div>
+            <h1>VOLTAJE <span>STORES</span></h1>
+            <p>La plataforma definitiva de recursos, scripts y mapeos de alta gama para MTA:SA.</p>
+            
+            <button id="discord-login-btn" onclick="loginWithDiscord()" class="btn-discord-real">
+                <i class="fa-brands fa-discord"></i> Conectar con Discord
+            </button>
+            <span class="auth-note"><i class="fa-solid fa-shield-halved"></i> Autenticación segura directa vía Discord OAuth2</span>
+        </div>
+    </div>
+
+    <!-- APLICACIÓN PRINCIPAL -->
+    <div id="app" class="hidden">
+        <header class="navbar glass">
+            <div class="logo"><i class="fa-solid fa-bolt"></i> VOLTAJE <span>STORES</span></div>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#" class="nav-btn active" onclick="showSection('info', this)"><i class="fa-solid fa-house"></i> Inicio</a></li>
+                    <li><a href="#" class="nav-btn" onclick="showSection('tienda', this)"><i class="fa-solid fa-store"></i> Tienda</a></li>
+                    <li><a href="#" class="nav-btn" onclick="showSection('creadores', this)"><i class="fa-solid fa-code"></i> Creadores</a></li>
+                    <li><a href="#" class="nav-btn" onclick="showSection('carrito', this)"><i class="fa-solid fa-cart-shopping"></i> Carrito (<span id="cart-count">0</span>)</a></li>
+                    <li><a href="#" class="nav-btn" onclick="showSection('terminos', this)"><i class="fa-solid fa-file-contract"></i> Términos</a></li>
+                    <li id="admin-nav" class="hidden"><a href="#" class="nav-btn admin-link" onclick="showSection('admin', this)"><i class="fa-solid fa-crown"></i> Panel Creador</a></li>
+                </ul>
+            </nav>
+            <div class="user-card glass">
+                <img id="user-avatar" src="" alt="Avatar">
+                <div class="user-details">
+                    <span id="user-name">Cargando...</span>
+                    <small id="user-role">Cliente</small>
+                </div>
+                <button onclick="logout()" class="btn-logout" title="Cerrar Sesión"><i class="fa-solid fa-power-off"></i></button>
+            </div>
+        </header>
+
+        <main class="content-container">
+            <!-- SECCIÓN INFORMACIÓN -->
+            <section id="info" class="section active">
+                <div class="hero-banner glass">
+                    <h2>MTA:SA DEVELOPMENT <span>NEXT-GEN</span></h2>
+                    <p>Optimización extrema, bases de datos eficientes e interfaces CEF avanzadas creadas por desarrolladores dominicanos para llevar tu servidor al siguiente nivel.</p>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box glass">
+                        <i class="fa-solid fa-cubes"></i>
+                        <h3>+50</h3>
+                        <p>Recursos Exclusivos</p>
+                    </div>
+                    <div class="stat-box glass">
+                        <i class="fa-solid fa-microchip"></i>
+                        <h3>100%</h3>
+                        <p>Optimización Lua</p>
+                    </div>
+                    <div class="stat-box glass">
+                        <i class="fa-solid fa-headset"></i>
+                        <h3>24/7</h3>
+                        <p>Soporte VIP</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN TIENDA -->
+            <section id="tienda" class="section">
+                <div class="section-header">
+                    <h2>CATÁLOGO DE <span>RECURSOS</span></h2>
+                    <div class="filter-bar glass">
+                        <button class="filter-btn active" onclick="filterResources('all', this)">Todos</button>
+                        <button class="filter-btn" onclick="filterResources('script', this)">Scripts</button>
+                        <button class="filter-btn" onclick="filterResources('mapeo', this)">Mapeos</button>
+                        <button class="filter-btn" onclick="filterResources('combo', this)">Combos</button>
+                    </div>
+                </div>
+                <div id="resources-grid" class="resources-grid"></div>
+            </section>
+
+            <!-- SECCIÓN CREADORES -->
+            <section id="creadores" class="section">
+                <div class="section-header">
+                    <h2>DESARROLLADORES <span>OFICIALES</span></h2>
+                    <p>El equipo detrás del desarrollo y la arquitectura de Voltaje Stores.</p>
+                </div>
+                <div class="creators-grid">
+                    <div class="creator-card glass">
+                        <div class="creator-header">
+                            <span class="role-badge red">Master Scripter</span>
+                            <i class="fa-solid fa-user-ninja creator-avatar-icon"></i>
+                        </div>
+                        <h3>x_donald</h3>
+                        <p>Especialista en desarrollo backend Lua, sistemas complejos de optimización y bases de datos MySQL nativas.</p>
+                        <div class="discord-tag-box"><i class="fa-brands fa-discord"></i> x_donald</div>
+                    </div>
+
+                    <div class="creator-card glass">
+                        <div class="creator-header">
+                            <span class="role-badge cyan">Lead Mapper 3D</span>
+                            <i class="fa-solid fa-map-location-dot creator-avatar-icon"></i>
+                        </div>
+                        <h3>jasdielduenodelamafiachina_97134</h3>
+                        <p>Diseñador de mapeos HD, interiores personalizados, zonas de guerra y estructuras optimizadas sin drop de FPS.</p>
+                        <div class="discord-tag-box"><i class="fa-brands fa-discord"></i> jasdielduenodelamafiachina_97134</div>
+                    </div>
+
+                    <div class="creator-card glass">
+                        <div class="creator-header">
+                            <span class="role-badge purple">UI/UX Specialist</span>
+                            <i class="fa-solid fa-wand-magic-sparkles creator-avatar-icon"></i>
+                        </div>
+                        <h3>starling102429</h3>
+                        <p>Creador de paneles CEF web dinámicos en HTML/CSS/JS integrados perfectamente con Lua MTA.</p>
+                        <div class="discord-tag-box"><i class="fa-brands fa-discord"></i> starling102429</div>
+                    </div>
+
+                    <div class="creator-card glass">
+                        <div class="creator-header">
+                            <span class="role-badge green">Scripter & Admin</span>
+                            <i class="fa-solid fa-terminal creator-avatar-icon"></i>
+                        </div>
+                        <h3>yoaldo</h3>
+                        <p>Desarrollador de sistemas de facciones, inventarios avanzados, mecánicas de rol y soporte técnico.</p>
+                        <div class="discord-tag-box"><i class="fa-brands fa-discord"></i> yoaldo</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN CARRITO -->
+            <section id="carrito" class="section">
+                <div class="section-header">
+                    <h2>TU CARRITO DE <span>COMPRAS</span></h2>
+                </div>
+                <div class="cart-container glass">
+                    <div id="cart-items" class="cart-items-list"></div>
+                    <div class="cart-summary">
+                        <h3>TOTAL: <span id="cart-total">$0.00</span></h3>
+                        <button onclick="checkout()" class="btn-glow">PROCESAR COMPRA</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN TÉRMINOS -->
+            <section id="terminos" class="section">
+                <div class="section-header">
+                    <h2>TÉRMINOS Y <span>CONDICIONES</span></h2>
+                </div>
+                <div class="terms-container glass">
+                    <h3>1. Licencia de Uso</h3>
+                    <p>Todos los recursos comprados en Voltaje Stores otorgan una licencia única para un solo servidor. Queda totalmente prohibida la reventa, filtración (leak) o redistribución pública de los archivos fuente.</p>
+                    
+                    <h3>2. Política de No Reembolso</h3>
+                    <p>Al tratarse de contenido digital descargable (Scripts, Mapeos, Interfaces CEF), no se procesan reembolsos una vez entregado el enlace de descarga.</p>
+
+                    <h3>3. Soporte y Modificaciones</h3>
+                    <p>El soporte técnico cubre únicamente errores base del recurso. Modificaciones realizadas por terceros que alteren la estructura del código anularán la garantía de soporte.</p>
+                </div>
+            </section>
+
+            <!-- SECCIÓN PANEL DE CREADORES (ADMIN) -->
+            <section id="admin" class="section">
+                <div class="section-header">
+                    <h2>PANEL DE CREADORES <span>(ADMIN)</span></h2>
+                </div>
+                <div class="admin-grid">
+                    <div class="card glass">
+                        <h3>Publicar Nuevo Recurso</h3>
+                        <form id="add-resource-form">
+                            <div class="form-group">
+                                <input type="text" id="res-name" placeholder="Nombre del Recurso" required>
+                            </div>
+                            <div class="form-group-row">
+                                <select id="res-category" required>
+                                    <option value="script">Script Lua</option>
+                                    <option value="mapeo">Mapeo 3D</option>
+                                    <option value="combo">Combo Pack</option>
+                                </select>
+                                <input type="number" id="res-price" step="0.01" placeholder="Precio ($ USD)" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="url" id="res-image" placeholder="URL de la Imagen (Direct Link / Imgur)" required>
+                            </div>
+                            <div class="form-group">
+                                <input type="url" id="res-link" placeholder="Enlace de Descarga (Mega, Drive, Mediafire)" required>
+                            </div>
+                            <div class="form-group">
+                                <textarea id="res-desc" rows="4" placeholder="Descripción del recurso e instrucciones..." required></textarea>
+                            </div>
+                            <button type="submit" class="btn-glow">PUBLICAR EN TIENDA</button>
+                        </form>
+                    </div>
+
+                    <div class="card glass">
+                        <h3>Usuarios Registrados (Discord)</h3>
+                        <div class="user-list-wrapper">
+                            <ul id="user-list" class="user-list"></ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
