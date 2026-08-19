@@ -223,16 +223,39 @@ function renderResources(filter, btn) {
         const card = document.createElement('div');
         card.className = 'res-card glass';
         card.innerHTML = `
-            <img src="${res.image}" alt="${res.name}">
+            <img src="${res.image}" alt="${res.name}" onclick="openResourceModal(${res.id})">
             <div class="res-content">
-                <h3>${res.name}</h3>
+                <h3 onclick="openResourceModal(${res.id})">${res.name}</h3>
                 <p>${res.desc}</p>
+                <button onclick="openResourceModal(${res.id})" class="btn-details"><i class="fa-solid fa-circle-info"></i> VER DETALLES COMPLETOS</button>
                 <div class="res-price">$${res.price.toFixed(2)} USD</div>
                 <button onclick="addToCart(${res.id})" class="btn-glow">AÑADIR AL CARRITO</button>
             </div>
         `;
         grid.appendChild(card);
     });
+}
+
+// MODAL DE DETALLES DE UN RECURSO (para descripciones largas)
+function openResourceModal(id) {
+    const res = resources.find(r => r.id === id);
+    if (!res) return;
+
+    document.getElementById('modal-res-image').src = res.image;
+    document.getElementById('modal-res-image').alt = res.name;
+    document.getElementById('modal-res-category').innerText = res.category.toUpperCase();
+    document.getElementById('modal-res-name').innerText = res.name;
+    document.getElementById('modal-res-desc').innerText = res.desc;
+    document.getElementById('modal-res-price').innerText = `$${res.price.toFixed(2)} USD`;
+    document.getElementById('modal-add-btn').setAttribute('onclick', `addToCart(${res.id})`);
+
+    document.getElementById('resource-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeResourceModal() {
+    document.getElementById('resource-modal').classList.add('hidden');
+    document.body.style.overflow = '';
 }
 
 function filterResources(category, btn) {
@@ -245,6 +268,7 @@ function addToCart(id) {
     cart.push(item);
     localStorage.setItem('voltaje_cart', JSON.stringify(cart));
     updateCart();
+    closeResourceModal();
     alert(`"${item.name}" fue agregado al carrito.`);
 }
 

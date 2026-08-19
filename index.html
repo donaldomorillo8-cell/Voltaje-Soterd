@@ -438,6 +438,23 @@
         </main>
     </div>
 
+    <!-- MODAL DE DETALLES DE RECURSO (descripción completa antes de comprar) -->
+    <div id="resource-modal" class="modal-overlay hidden" onclick="if(event.target === this) closeResourceModal()">
+        <div class="modal-content glass">
+            <button class="modal-close" onclick="closeResourceModal()"><i class="fa-solid fa-xmark"></i></button>
+            <img id="modal-res-image" src="" alt="">
+            <div class="modal-body">
+                <span id="modal-res-category" class="role-badge cyan"></span>
+                <h2 id="modal-res-name"></h2>
+                <p id="modal-res-desc"></p>
+                <div class="modal-footer">
+                    <div id="modal-res-price" class="res-price"></div>
+                    <button id="modal-add-btn" class="btn-glow"><i class="fa-solid fa-cart-plus"></i> AÑADIR AL CARRITO</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
