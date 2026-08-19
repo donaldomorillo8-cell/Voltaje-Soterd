@@ -14,15 +14,54 @@
 
     <!-- PANTALLA DE LOGIN DISCORD -->
     <div id="login-screen" class="login-container">
+        <div class="login-showcase">
+            <div class="login-brand">
+                <div class="logo-badge"><i class="fa-solid fa-bolt"></i></div>
+                <h1>VOLTAJE <span>STORES</span></h1>
+                <p class="login-tagline">La plataforma definitiva de recursos, scripts y mapeos de alta gama para MTA:SA, hecha por desarrolladores dominicanos.</p>
+            </div>
+
+            <div class="login-features">
+                <div class="login-feature-item">
+                    <i class="fa-solid fa-cubes"></i>
+                    <div><strong>+50 Recursos</strong><span>Scripts, mapeos y combos listos para instalar</span></div>
+                </div>
+                <div class="login-feature-item">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <div><strong>Código Verificado</strong><span>Cada recurso se prueba antes de publicarse</span></div>
+                </div>
+                <div class="login-feature-item">
+                    <i class="fa-brands fa-paypal"></i>
+                    <div><strong>Pago Seguro con PayPal</strong><span>Tu descarga se desbloquea justo al confirmarse el pago</span></div>
+                </div>
+                <div class="login-feature-item">
+                    <i class="fa-solid fa-headset"></i>
+                    <div><strong>Soporte 24/7</strong><span>Equipo activo en nuestro Discord oficial</span></div>
+                </div>
+            </div>
+
+            <div class="login-stats">
+                <div><h3>+50</h3><p>Recursos</p></div>
+                <div><h3>100%</h3><p>Optimizado</p></div>
+                <div><h3>24/7</h3><p>Soporte</p></div>
+            </div>
+        </div>
+
         <div class="login-card glass">
-            <div class="logo-badge"><i class="fa-solid fa-bolt"></i></div>
-            <h1>VOLTAJE <span>STORES</span></h1>
-            <p>La plataforma definitiva de recursos, scripts y mapeos de alta gama para MTA:SA.</p>
-            
+            <span class="login-card-tag"><i class="fa-solid fa-lock"></i> Acceso de Miembros</span>
+            <h2>Bienvenido de nuevo</h2>
+            <p>Inicia sesión con tu cuenta de Discord para entrar a la tienda, tu perfil y tus descargas.</p>
+
             <button id="discord-login-btn" onclick="loginWithDiscord()" class="btn-discord-real">
                 <i class="fa-brands fa-discord"></i> Conectar con Discord
             </button>
             <span class="auth-note"><i class="fa-solid fa-shield-halved"></i> Autenticación segura directa vía Discord OAuth2</span>
+
+            <div class="login-mini-perks">
+                <span><i class="fa-solid fa-check"></i> Sin contraseñas</span>
+                <span><i class="fa-solid fa-check"></i> Registro en segundos</span>
+                <span><i class="fa-solid fa-check"></i> 100% gratis unirte</span>
+            </div>
         </div>
     </div>
 
@@ -190,7 +229,8 @@
                     <div id="cart-items" class="cart-items-list"></div>
                     <div class="cart-summary">
                         <h3>TOTAL: <span id="cart-total">$0.00</span></h3>
-                        <button onclick="checkout()" class="btn-glow">PROCESAR COMPRA</button>
+                        <button onclick="checkout()" class="btn-paypal"><i class="fa-brands fa-paypal"></i> PAGAR CON PAYPAL</button>
+                        <span class="paypal-note"><i class="fa-solid fa-lock"></i> Pago procesado de forma segura por PayPal. Tus enlaces de descarga se desbloquean automáticamente al confirmarse el pago.</span>
                     </div>
                 </div>
             </section>
@@ -338,41 +378,59 @@
                     <h2>PANEL DE CREADORES <span>(ADMIN)</span></h2>
                 </div>
                 <div class="admin-grid">
-                    <div class="card glass">
-                        <h3>Publicar Nuevo Recurso</h3>
-                        <form id="add-resource-form">
-                            <div class="form-group">
-                                <input type="text" id="res-name" placeholder="Nombre del Recurso" required>
-                            </div>
-                            <div class="form-group-row">
-                                <select id="res-category" required>
-                                    <option value="script">Script Lua</option>
-                                    <option value="mapeo">Mapeo 3D</option>
-                                    <option value="combo">Combo Pack</option>
-                                </select>
-                                <input type="number" id="res-price" step="0.01" placeholder="Precio ($ USD)" required>
-                            </div>
-                            
-                            <!-- SELECCIÓN DE IMAGEN DESDE EL DISPOSITIVO -->
-                            <div class="form-group">
-                                <label style="display: block; margin-bottom: 5px; color: var(--neon-primary); font-size:0.9rem;">Imagen del Recurso (Seleccionar de tu dispositivo):</label>
-                                <input type="file" id="res-image-file" accept="image/*" required>
-                            </div>
+                    <div class="admin-col">
+                        <div class="card glass">
+                            <h3>Publicar Nuevo Recurso</h3>
+                            <form id="add-resource-form">
+                                <div class="form-group">
+                                    <input type="text" id="res-name" placeholder="Nombre del Recurso" required>
+                                </div>
+                                <div class="form-group-row">
+                                    <select id="res-category" required>
+                                        <option value="script">Script Lua</option>
+                                        <option value="mapeo">Mapeo 3D</option>
+                                        <option value="combo">Combo Pack</option>
+                                    </select>
+                                    <input type="number" id="res-price" step="0.01" placeholder="Precio ($ USD)" required>
+                                </div>
+                                
+                                <!-- SELECCIÓN DE IMAGEN DESDE EL DISPOSITIVO -->
+                                <div class="form-group">
+                                    <label style="display: block; margin-bottom: 5px; color: var(--neon-primary); font-size:0.9rem;">Imagen del Recurso (Seleccionar de tu dispositivo):</label>
+                                    <input type="file" id="res-image-file" accept="image/*" required>
+                                </div>
 
-                            <div class="form-group">
-                                <input type="url" id="res-link" placeholder="Enlace de Descarga (Mega, Drive, Mediafire)" required>
-                            </div>
-                            <div class="form-group">
-                                <textarea id="res-desc" rows="4" placeholder="Descripción del recurso e instrucciones..." required></textarea>
-                            </div>
-                            <button type="submit" class="btn-glow">PUBLICAR EN TIENDA</button>
-                        </form>
+                                <div class="form-group">
+                                    <input type="url" id="res-link" placeholder="Enlace de Descarga (Mega, Drive, Mediafire)" required>
+                                </div>
+                                <div class="form-group">
+                                    <textarea id="res-desc" rows="4" placeholder="Descripción del recurso e instrucciones..." required></textarea>
+                                </div>
+                                <button type="submit" class="btn-glow">PUBLICAR EN TIENDA</button>
+                            </form>
+                        </div>
+
+                        <div class="card glass">
+                            <h3><i class="fa-solid fa-box-archive"></i> Gestionar Recursos Publicados</h3>
+                            <ul id="admin-resource-list" class="user-list"></ul>
+                        </div>
                     </div>
 
-                    <div class="card glass">
-                        <h3>Usuarios Registrados (Discord)</h3>
-                        <div class="user-list-wrapper">
-                            <ul id="user-list" class="user-list"></ul>
+                    <div class="admin-col">
+                        <div class="card glass">
+                            <h3>Usuarios Registrados (Discord)</h3>
+                            <div class="user-list-wrapper">
+                                <ul id="user-list" class="user-list"></ul>
+                            </div>
+                        </div>
+
+                        <div class="card glass">
+                            <h3><i class="fa-solid fa-user-shield"></i> Gestionar Administradores</h3>
+                            <form id="add-admin-form" class="form-group-row" style="align-items:start;">
+                                <input type="text" id="admin-username-input" placeholder="Usuario de Discord (ej: nombre_usuario)" required>
+                                <button type="submit" class="btn-glow" style="width:auto; padding:12px 20px;">AÑADIR</button>
+                            </form>
+                            <ul id="admin-manage-list" class="user-list" style="margin-top:10px;"></ul>
                         </div>
                     </div>
                 </div>

@@ -2,7 +2,11 @@
 const CLIENT_ID = '1517661392369483907'; 
 const REDIRECT_URI = 'https://voltaje-soterd.vercel.app/';
 
-// CREADORES AUTORIZADOS PARA EL PANEL ADMIN
+// CONFIGURACIÓN DE PAYPAL (CUENTA RECEPTORA DE PAGOS)
+const PAYPAL_BUSINESS_EMAIL = 'morilloysaia6@gmail.com';
+const PAYPAL_CURRENCY = 'USD';
+
+// CREADORES AUTORIZADOS PARA EL PANEL ADMIN (BASE, NO EDITABLE DESDE LA APP)
 const CREATORS = [
     "x_donald",
     "x_donald.",
@@ -12,31 +16,14 @@ const CREATORS = [
 ];
 
 // Estado global de la aplicación
-let currentUser = null;
-let cart = [];
-let resources = JSON.parse(localStorage.getItem('voltaje_resources')) || [
-    {
-        id: 1,
-        name: "Sistema de Garaje CEF",
-        category: "script",
-        price: 15.00,
-        image: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500",
-        link: "https://mega.nz/file/ejemplo1",
-        desc: "Panel CEF totalmente responsivo con vista 3D de vehículos y guardado MySQL."
-    },
-    {
-        id: 2,
-        name: "Mapeo Base VIP Pershing",
-        category: "mapeo",
-        price: 10.00,
-        image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=500",
-        link: "https://mega.nz/file/ejemplo2",
-        desc: "Mapeo exterior e interior de alta definición optimizado para 0 caídas de FPS."
-    }
-];
+let currentUser = JSON.parse(localStorage.getItem('voltaje_current_user')) || null;
+let cart = JSON.parse(localStorage.getItem('voltaje_cart')) || [];
+let resources = JSON.parse(localStorage.getItem('voltaje_resources')) || [];
 
 let userPurchases = JSON.parse(localStorage.getItem('voltaje_purchases')) || {};
 let registeredUsers = JSON.parse(localStorage.getItem('voltaje_users')) || [];
+// Administradores añadidos manualmente desde el Panel Creador (además de los CREATORS base)
+let extraAdmins = JSON.parse(localStorage.getItem('voltaje_extra_admins')) || [];
 
 // 1. INICIAR SESIÓN CON DISCORD
 function loginWithDiscord() {
@@ -48,7 +35,7 @@ function loginWithDiscord() {
     window.location.href = discordAuthUrl;
 }
 
-// 2. LEER ACCESSTOKEN DE LA URL AL VOLVER DE DISCORD
+// 2. LEER ACCESSTOKEN DE LA URL AL VOLVER DE DISCORD (Y RESTAURAR SESIÓN / PAGOS)
 window.addEventListener('DOMContentLoaded', () => {
     const fragment = new URLSearchParams(window.location.hash.slice(1));
     const accessToken = fragment.get('access_token');
@@ -63,11 +50,39 @@ window.addEventListener('DOMContentLoaded', () => {
         .then(userData => {
             if (userData.username) {
                 setupUserSession(userData);
+                handlePaypalReturn();
             }
         })
         .catch(err => console.error("Error al autenticar con Discord:", err));
+        return;
+    }
+
+    // Si ya había una sesión guardada localmente (por ejemplo, al volver de PayPal), la restauramos
+    if (currentUser) {
+        restoreSession();
+        handlePaypalReturn();
     }
 });
+
+// RESTAURAR UNA SESIÓN YA INICIADA (SIN VOLVER A PASAR POR DISCORD)
+function restoreSession() {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+
+    updateProfileUI();
+
+    if (currentUser.isCreator) {
+        document.getElementById('admin-nav').classList.remove('hidden');
+        renderAdminResources();
+        renderAdminsList();
+    }
+
+    renderResources('all');
+    renderUsers();
+    renderOwnedProducts();
+    renderRanking();
+    updateCart();
+}
 
 // 3. CONFIGURAR LA SESIÓN Y ROLES
 function setupUserSession(discordUser) {
@@ -76,7 +91,7 @@ function setupUserSession(discordUser) {
         : `https://cdn.discordapp.com/embed/avatars/0.png`;
 
     const cleanUsername = discordUser.username.trim().toLowerCase();
-    const isCreator = CREATORS.includes(cleanUsername);
+    const isCreator = CREATORS.includes(cleanUsername) || extraAdmins.includes(cleanUsername);
 
     // Si es un creador, guardamos su avatar oficial para la sección de creadores
     if(cleanUsername.includes("x_donald")) setCreatorAvatar("creator-avatar-x_donald", defaultAvatar);
@@ -91,8 +106,11 @@ function setupUserSession(discordUser) {
         id: discordUser.id,
         username: savedCustomProfile ? savedCustomProfile.username : discordUser.username,
         avatar: savedCustomProfile ? savedCustomProfile.avatar : defaultAvatar,
-        isCreator: isCreator
+        isCreator: isCreator,
+        cleanUsername: cleanUsername
     };
+
+    localStorage.setItem('voltaje_current_user', JSON.stringify(currentUser));
 
     if (!registeredUsers.some(u => u.id === currentUser.id)) {
         registeredUsers.push({
@@ -111,12 +129,15 @@ function setupUserSession(discordUser) {
 
     if (isCreator) {
         document.getElementById('admin-nav').classList.remove('hidden');
+        renderAdminResources();
+        renderAdminsList();
     }
 
     renderResources('all');
     renderUsers();
     renderOwnedProducts();
     renderRanking();
+    updateCart();
 }
 
 function setCreatorAvatar(elementId, avatarUrl) {
@@ -132,6 +153,8 @@ function updateProfileUI() {
 }
 
 function logout() {
+    localStorage.removeItem('voltaje_current_user');
+    localStorage.removeItem('voltaje_cart');
     window.location.href = REDIRECT_URI;
 }
 
@@ -220,6 +243,7 @@ function filterResources(category, btn) {
 function addToCart(id) {
     const item = resources.find(r => r.id === id);
     cart.push(item);
+    localStorage.setItem('voltaje_cart', JSON.stringify(cart));
     updateCart();
     alert(`"${item.name}" fue agregado al carrito.`);
 }
@@ -253,32 +277,81 @@ function updateCart() {
 
 function removeFromCart(index) {
     cart.splice(index, 1);
+    localStorage.setItem('voltaje_cart', JSON.stringify(cart));
     updateCart();
 }
 
+// PAGO CON PAYPAL: redirige a PayPal y solo desbloquea los recursos cuando el pago se confirma
 function checkout() {
     if (cart.length === 0) return alert("Tu carrito está vacío.");
     if (!currentUser) return alert("Debes iniciar sesión con Discord.");
 
-    if (!userPurchases[currentUser.id]) {
-        userPurchases[currentUser.id] = [];
-    }
+    // Guardamos el carrito por si el usuario vuelve desde PayPal tras el pago
+    localStorage.setItem('voltaje_cart', JSON.stringify(cart));
 
-    cart.forEach(item => {
-        if(!userPurchases[currentUser.id].some(p => p.id === item.id)) {
-            userPurchases[currentUser.id].push(item);
-        }
+    const itemIds = cart.map(item => item.id);
+    const returnUrl = `${REDIRECT_URI}?voltaje_payment=success&items=${encodeURIComponent(JSON.stringify(itemIds))}`;
+    const cancelUrl = `${REDIRECT_URI}?voltaje_payment=cancel`;
+
+    const params = new URLSearchParams();
+    params.set('cmd', '_cart');
+    params.set('upload', '1');
+    params.set('business', PAYPAL_BUSINESS_EMAIL);
+    params.set('currency_code', PAYPAL_CURRENCY);
+    params.set('return', returnUrl);
+    params.set('cancel_return', cancelUrl);
+    params.set('no_shipping', '1');
+
+    cart.forEach((item, index) => {
+        const n = index + 1;
+        params.set(`item_name_${n}`, item.name);
+        params.set(`item_number_${n}`, item.id);
+        params.set(`amount_${n}`, item.price.toFixed(2));
+        params.set(`quantity_${n}`, '1');
     });
 
-    localStorage.setItem('voltaje_purchases', JSON.stringify(userPurchases));
+    window.location.href = `https://www.paypal.com/cgi-bin/webscr?${params.toString()}`;
+}
 
-    alert("¡Compra procesada con éxito! Tus productos ya están disponibles en 'Mi Perfil'.");
-    cart = [];
-    updateCart();
-    renderOwnedProducts();
-    renderRanking();
-    showSection('perfil');
-    switchProfileTab('purchases');
+// PROCESA EL REGRESO DESDE PAYPAL Y DESBLOQUEA LOS ENLACES SOLO SI EL PAGO FUE EXITOSO
+function handlePaypalReturn() {
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('voltaje_payment');
+    if (!paymentStatus) return;
+
+    if (paymentStatus === 'success' && currentUser) {
+        let itemIds = [];
+        try { itemIds = JSON.parse(params.get('items') || '[]'); } catch (e) { itemIds = []; }
+
+        const savedCart = JSON.parse(localStorage.getItem('voltaje_cart')) || [];
+
+        if (!userPurchases[currentUser.id]) {
+            userPurchases[currentUser.id] = [];
+        }
+
+        itemIds.forEach(id => {
+            const item = resources.find(r => r.id === id) || savedCart.find(r => r.id === id);
+            if (item && !userPurchases[currentUser.id].some(p => p.id === item.id)) {
+                userPurchases[currentUser.id].push(item);
+            }
+        });
+
+        localStorage.setItem('voltaje_purchases', JSON.stringify(userPurchases));
+
+        cart = [];
+        localStorage.removeItem('voltaje_cart');
+        updateCart();
+        renderOwnedProducts();
+        renderRanking();
+
+        alert("¡Pago recibido con éxito! Tus enlaces de descarga ya están desbloqueados en 'Mi Perfil'.");
+        showSection('perfil');
+        switchProfileTab('purchases');
+    } else if (paymentStatus === 'cancel') {
+        alert("El pago fue cancelado. Tu carrito sigue disponible para intentarlo de nuevo.");
+    }
+
+    window.history.replaceState({}, document.title, window.location.pathname);
 }
 
 // RANKING DE TOP COMPRADORES (SECCIÓN INICIO)
@@ -394,10 +467,107 @@ document.getElementById('add-resource-form').addEventListener('submit', (e) => {
 
         document.getElementById('add-resource-form').reset();
         renderResources('all');
+        renderAdminResources();
     };
 
     reader.readAsDataURL(imageFile);
 });
+
+// PANEL ADMIN: ELIMINAR UN RECURSO DE LA TIENDA
+function deleteResource(id) {
+    const item = resources.find(r => r.id === id);
+    if (!item) return;
+    if (!confirm(`¿Seguro que quieres eliminar "${item.name}" de la tienda? Esta acción no se puede deshacer.`)) return;
+
+    resources = resources.filter(r => r.id !== id);
+    localStorage.setItem('voltaje_resources', JSON.stringify(resources));
+
+    renderResources('all');
+    renderAdminResources();
+}
+
+// PANEL ADMIN: LISTA DE RECURSOS CON OPCIÓN DE ELIMINAR
+function renderAdminResources() {
+    const list = document.getElementById('admin-resource-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (resources.length === 0) {
+        list.innerHTML = '<p style="color:var(--text-muted); padding:8px 0;">No hay recursos publicados todavía.</p>';
+        return;
+    }
+
+    resources.forEach(res => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <img src="${res.image}" alt="${res.name}" style="width:34px; height:34px; border-radius:8px; object-fit:cover;">
+            <div style="flex-grow:1;">
+                <strong>${res.name}</strong>
+                <br><small style="color:var(--text-muted)">${res.category.toUpperCase()} · $${res.price.toFixed(2)} USD</small>
+            </div>
+            <button onclick="deleteResource(${res.id})" class="btn-icon-danger" title="Eliminar recurso"><i class="fa-solid fa-trash"></i></button>
+        `;
+        list.appendChild(li);
+    });
+}
+
+// PANEL ADMIN: AÑADIR OTRO ADMINISTRADOR POR SU USUARIO DE DISCORD
+document.getElementById('add-admin-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = document.getElementById('admin-username-input');
+    const newAdmin = input.value.trim().toLowerCase();
+
+    if (!newAdmin) return;
+    if (CREATORS.includes(newAdmin) || extraAdmins.includes(newAdmin)) {
+        alert("Ese usuario ya tiene permisos de administrador.");
+        return;
+    }
+
+    extraAdmins.push(newAdmin);
+    localStorage.setItem('voltaje_extra_admins', JSON.stringify(extraAdmins));
+
+    input.value = '';
+    renderAdminsList();
+    alert(`"${newAdmin}" ahora es administrador. Tendrá acceso al Panel Creador la próxima vez que inicie sesión.`);
+});
+
+// PANEL ADMIN: QUITAR UN ADMINISTRADOR AÑADIDO MANUALMENTE
+function removeAdmin(username) {
+    if (!confirm(`¿Quitar permisos de administrador a "${username}"?`)) return;
+    extraAdmins = extraAdmins.filter(u => u !== username);
+    localStorage.setItem('voltaje_extra_admins', JSON.stringify(extraAdmins));
+    renderAdminsList();
+}
+
+// PANEL ADMIN: LISTA DE ADMINISTRADORES (BASE + AÑADIDOS)
+function renderAdminsList() {
+    const list = document.getElementById('admin-manage-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    CREATORS.forEach(username => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <div style="flex-grow:1;">
+                <strong>${username}</strong>
+                <br><small style="color:var(--text-muted)">Administrador base</small>
+            </div>
+        `;
+        list.appendChild(li);
+    });
+
+    extraAdmins.forEach(username => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <div style="flex-grow:1;">
+                <strong>${username}</strong>
+                <br><small style="color:var(--text-muted)">Añadido manualmente</small>
+            </div>
+            <button onclick="removeAdmin('${username}')" class="btn-icon-danger" title="Quitar administrador"><i class="fa-solid fa-user-minus"></i></button>
+        `;
+        list.appendChild(li);
+    });
+}
 
 function renderUsers() {
     const list = document.getElementById('user-list');
