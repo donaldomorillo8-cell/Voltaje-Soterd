@@ -34,6 +34,8 @@ let resources = JSON.parse(localStorage.getItem('voltaje_resources')) || [
         desc: "Mapeo exterior e interior de alta definición optimizado para 0 caídas de FPS."
     }
 ];
+
+let userPurchases = JSON.parse(localStorage.getItem('voltaje_purchases')) || {};
 let registeredUsers = JSON.parse(localStorage.getItem('voltaje_users')) || [];
 
 // 1. INICIAR SESIÓN CON DISCORD
@@ -41,7 +43,6 @@ function loginWithDiscord() {
     const cleanClientId = CLIENT_ID.trim();
     const cleanRedirectUri = encodeURIComponent(REDIRECT_URI.trim());
 
-    // Construcción exacta del enlace OAuth2
     const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${cleanClientId}&redirect_uri=${cleanRedirectUri}&response_type=token&scope=identify`;
 
     window.location.href = discordAuthUrl;
@@ -53,10 +54,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const accessToken = fragment.get('access_token');
 
     if (accessToken) {
-        // Limpiar fragmento token de la URL por privacidad
         window.history.replaceState({}, document.title, window.location.pathname);
         
-        // Petición a la API de Discord para traer datos reales del usuario
         fetch('https://discord.com/api/users/@me', {
             headers: { authorization: `Bearer ${accessToken}` }
         })
@@ -72,21 +71,29 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // 3. CONFIGURAR LA SESIÓN Y ROLES
 function setupUserSession(discordUser) {
-    const avatarUrl = discordUser.avatar 
+    const defaultAvatar = discordUser.avatar 
         ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
         : `https://cdn.discordapp.com/embed/avatars/0.png`;
 
     const cleanUsername = discordUser.username.trim().toLowerCase();
     const isCreator = CREATORS.includes(cleanUsername);
 
+    // Si es un creador, guardamos su avatar oficial para la sección de creadores
+    if(cleanUsername.includes("x_donald")) setCreatorAvatar("creator-avatar-x_donald", defaultAvatar);
+    if(cleanUsername.includes("jasdiel")) setCreatorAvatar("creator-avatar-jasdiel", defaultAvatar);
+    if(cleanUsername.includes("starling")) setCreatorAvatar("creator-avatar-starling", defaultAvatar);
+    if(cleanUsername.includes("yoaldo")) setCreatorAvatar("creator-avatar-yoaldo", defaultAvatar);
+
+    // Cargar perfil guardado localmente si existe edición previa
+    const savedCustomProfile = JSON.parse(localStorage.getItem(`voltaje_profile_${discordUser.id}`));
+
     currentUser = {
         id: discordUser.id,
-        username: discordUser.username,
-        avatar: avatarUrl,
+        username: savedCustomProfile ? savedCustomProfile.username : discordUser.username,
+        avatar: savedCustomProfile ? savedCustomProfile.avatar : defaultAvatar,
         isCreator: isCreator
     };
 
-    // Guardar registro de usuario en localStorage
     if (!registeredUsers.some(u => u.id === currentUser.id)) {
         registeredUsers.push({
             id: currentUser.id,
@@ -97,21 +104,30 @@ function setupUserSession(discordUser) {
         localStorage.setItem('voltaje_users', JSON.stringify(registeredUsers));
     }
 
-    // Actualizar interfaz tras autenticación exitosa
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
 
-    document.getElementById('user-name').innerText = currentUser.username;
-    document.getElementById('user-avatar').src = currentUser.avatar;
-    document.getElementById('user-role').innerText = isCreator ? "Creador / Admin" : "Cliente VIP";
+    updateProfileUI();
 
-    // Mostrar pestaña de administración si es Creador / Admin
     if (isCreator) {
         document.getElementById('admin-nav').classList.remove('hidden');
     }
 
     renderResources('all');
     renderUsers();
+    renderOwnedProducts();
+}
+
+function setCreatorAvatar(elementId, avatarUrl) {
+    const el = document.getElementById(elementId);
+    if(el) el.src = avatarUrl;
+}
+
+function updateProfileUI() {
+    document.getElementById('user-name').innerText = currentUser.username;
+    document.getElementById('user-avatar').src = currentUser.avatar;
+    document.getElementById('user-role').innerText = currentUser.isCreator ? "Creador / Admin" : "Cliente VIP";
+    document.getElementById('profile-input-username').value = currentUser.username;
 }
 
 function logout() {
@@ -127,7 +143,47 @@ function showSection(sectionId, btn) {
     if(btn) btn.classList.add('active');
 }
 
-// RENDER DE PRODUCTOS
+// PESTAÑAS DENTRO DEL PERFIL
+function switchProfileTab(tabName, btn) {
+    document.querySelectorAll('.profile-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.profile-tab-content').forEach(c => c.classList.remove('active'));
+
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+    if(btn) btn.classList.add('active');
+}
+
+// EDITAR PERFIL (NOMBRE Y FOTO DESDE EL DISPOSITIVO)
+document.getElementById('edit-profile-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const newUsername = document.getElementById('profile-input-username').value;
+    const fileInput = document.getElementById('profile-input-avatar');
+
+    if (fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            saveProfileChanges(newUsername, e.target.result);
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    } else {
+        saveProfileChanges(newUsername, currentUser.avatar);
+    }
+});
+
+function saveProfileChanges(username, avatar) {
+    currentUser.username = username;
+    currentUser.avatar = avatar;
+
+    localStorage.setItem(`voltaje_profile_${currentUser.id}`, JSON.stringify({
+        username: username,
+        avatar: avatar
+    }));
+
+    updateProfileUI();
+    alert("¡Perfil actualizado con éxito!");
+}
+
+// RENDER DE PRODUCTOS EN LA TIENDA
 function renderResources(filter, btn) {
     if(btn) {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -159,7 +215,7 @@ function filterResources(category, btn) {
     renderResources(category, btn);
 }
 
-// CARRITO DE COMPRAS
+// CARRITO DE COMPRAS Y PROCESO DE PAGO
 function addToCart(id) {
     const item = resources.find(r => r.id === id);
     cart.push(item);
@@ -201,32 +257,107 @@ function removeFromCart(index) {
 
 function checkout() {
     if (cart.length === 0) return alert("Tu carrito está vacío.");
-    let links = cart.map(i => `• ${i.name}: ${i.link}`).join('\n');
-    alert(`¡Gracias por comprar en Voltaje Stores!\n\nAquí están tus enlaces de descarga directa:\n\n${links}`);
+    if (!currentUser) return alert("Debes iniciar sesión con Discord.");
+
+    if (!userPurchases[currentUser.id]) {
+        userPurchases[currentUser.id] = [];
+    }
+
+    cart.forEach(item => {
+        if(!userPurchases[currentUser.id].some(p => p.id === item.id)) {
+            userPurchases[currentUser.id].push(item);
+        }
+    });
+
+    localStorage.setItem('voltaje_purchases', JSON.stringify(userPurchases));
+
+    alert("¡Compra procesada con éxito! Tus productos ya están disponibles en 'Mi Perfil'.");
     cart = [];
     updateCart();
+    renderOwnedProducts();
+    showSection('perfil');
+    switchProfileTab('purchases');
 }
 
-// PANEL DE CREADORES (PUBLICAR RECURSOS)
+// RENDER DE PRODUCTOS OBTENIDOS Y ENLACES
+function renderOwnedProducts() {
+    if (!currentUser) return;
+    const purchases = userPurchases[currentUser.id] || [];
+
+    const grid = document.getElementById('owned-products-grid');
+    const downloadsList = document.getElementById('downloads-list');
+
+    grid.innerHTML = '';
+    downloadsList.innerHTML = '';
+
+    if (purchases.length === 0) {
+        grid.innerHTML = '<p style="color:var(--text-muted)">Aún no has comprado ningún recurso.</p>';
+        downloadsList.innerHTML = '<p style="color:var(--text-muted)">Aún no tienes enlaces de descarga.</p>';
+        return;
+    }
+
+    purchases.forEach(res => {
+        // Render tarjeta
+        const card = document.createElement('div');
+        card.className = 'res-card glass';
+        card.innerHTML = `
+            <img src="${res.image}" alt="${res.name}">
+            <div class="res-content">
+                <h3>${res.name}</h3>
+                <p>${res.desc}</p>
+                <a href="${res.link}" target="_blank" class="btn-glow" style="text-align:center; text-decoration:none; display:block;">DESCARGAR AHORA</a>
+            </div>
+        `;
+        grid.appendChild(card);
+
+        // Render lista de descargas
+        const li = document.createElement('li');
+        li.className = 'download-item glass';
+        li.innerHTML = `
+            <div>
+                <strong>${res.name}</strong>
+                <div style="color:var(--text-muted); font-size:0.85rem;">Categoría: ${res.category.toUpperCase()}</div>
+            </div>
+            <a href="${res.link}" target="_blank" class="btn-download-direct"><i class="fa-solid fa-cloud-arrow-down"></i> Descargar</a>
+        `;
+        downloadsList.appendChild(li);
+    });
+}
+
+// PANEL ADMIN: PUBLICAR RECURSO SUBIENDO IMAGEN DEL DISPOSITIVO
 document.getElementById('add-resource-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    
-    const newRes = {
-        id: Date.now(),
-        name: document.getElementById('res-name').value,
-        category: document.getElementById('res-category').value,
-        price: parseFloat(document.getElementById('res-price').value),
-        image: document.getElementById('res-image').value,
-        link: document.getElementById('res-link').value,
-        desc: document.getElementById('res-desc').value
+
+    const name = document.getElementById('res-name').value;
+    const category = document.getElementById('res-category').value;
+    const price = parseFloat(document.getElementById('res-price').value);
+    const link = document.getElementById('res-link').value;
+    const desc = document.getElementById('res-desc').value;
+    const imageFile = document.getElementById('res-image-file').files[0];
+
+    if (!imageFile) return alert("Por favor selecciona una imagen desde tu dispositivo.");
+
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const newRes = {
+            id: Date.now(),
+            name: name,
+            category: category,
+            price: price,
+            image: event.target.result, // Se convierte en base64 para guardarse y mostrarse
+            link: link,
+            desc: desc
+        };
+
+        resources.push(newRes);
+        localStorage.setItem('voltaje_resources', JSON.stringify(resources));
+        alert("¡Recurso publicado exitosamente en la tienda!");
+
+        document.getElementById('add-resource-form').reset();
+        renderResources('all');
     };
 
-    resources.push(newRes);
-    localStorage.setItem('voltaje_resources', JSON.stringify(resources));
-    alert("¡Recurso publicado exitosamente en la tienda!");
-    
-    document.getElementById('add-resource-form').reset();
-    renderResources('all');
+    reader.readAsDataURL(imageFile);
 });
 
 function renderUsers() {

@@ -36,17 +36,18 @@
                     <li><a href="#" class="nav-btn" onclick="showSection('tienda', this)"><i class="fa-solid fa-store"></i> Tienda</a></li>
                     <li><a href="#" class="nav-btn" onclick="showSection('creadores', this)"><i class="fa-solid fa-code"></i> Creadores</a></li>
                     <li><a href="#" class="nav-btn" onclick="showSection('carrito', this)"><i class="fa-solid fa-cart-shopping"></i> Carrito (<span id="cart-count">0</span>)</a></li>
+                    <li><a href="#" class="nav-btn" onclick="showSection('perfil', this)"><i class="fa-solid fa-user"></i> Mi Perfil</a></li>
                     <li><a href="#" class="nav-btn" onclick="showSection('terminos', this)"><i class="fa-solid fa-file-contract"></i> Términos</a></li>
                     <li id="admin-nav" class="hidden"><a href="#" class="nav-btn admin-link" onclick="showSection('admin', this)"><i class="fa-solid fa-crown"></i> Panel Creador</a></li>
                 </ul>
             </nav>
-            <div class="user-card glass">
+            <div class="user-card glass" onclick="showSection('perfil')" style="cursor: pointer;" title="Ir a mi perfil">
                 <img id="user-avatar" src="" alt="Avatar">
                 <div class="user-details">
                     <span id="user-name">Cargando...</span>
                     <small id="user-role">Cliente</small>
                 </div>
-                <button onclick="logout()" class="btn-logout" title="Cerrar Sesión"><i class="fa-solid fa-power-off"></i></button>
+                <button onclick="logout(); event.stopPropagation();" class="btn-logout" title="Cerrar Sesión"><i class="fa-solid fa-power-off"></i></button>
             </div>
         </header>
 
@@ -99,18 +100,18 @@
                 <div class="creators-grid">
                     <div class="creator-card glass">
                         <div class="creator-header">
+                            <img src="https://cdn.discordapp.com/embed/avatars/0.png" id="creator-avatar-x_donald" class="creator-profile-img" alt="x_donald.">
                             <span class="role-badge red">Master Scripter</span>
-                            <i class="fa-solid fa-user-ninja creator-avatar-icon"></i>
                         </div>
-                        <h3>x_donald</h3>
+                        <h3>x_donald.</h3>
                         <p>Especialista en desarrollo backend Lua, sistemas complejos de optimización y bases de datos MySQL nativas.</p>
-                        <div class="discord-tag-box"><i class="fa-brands fa-discord"></i> x_donald</div>
+                        <div class="discord-tag-box"><i class="fa-brands fa-discord"></i> x_donald.</div>
                     </div>
 
                     <div class="creator-card glass">
                         <div class="creator-header">
+                            <img src="https://cdn.discordapp.com/embed/avatars/1.png" id="creator-avatar-jasdiel" class="creator-profile-img" alt="jasdiel">
                             <span class="role-badge cyan">Lead Mapper 3D</span>
-                            <i class="fa-solid fa-map-location-dot creator-avatar-icon"></i>
                         </div>
                         <h3>jasdielduenodelamafiachina_97134</h3>
                         <p>Diseñador de mapeos HD, interiores personalizados, zonas de guerra y estructuras optimizadas sin drop de FPS.</p>
@@ -119,8 +120,8 @@
 
                     <div class="creator-card glass">
                         <div class="creator-header">
+                            <img src="https://cdn.discordapp.com/embed/avatars/2.png" id="creator-avatar-starling" class="creator-profile-img" alt="starling">
                             <span class="role-badge purple">UI/UX Specialist</span>
-                            <i class="fa-solid fa-wand-magic-sparkles creator-avatar-icon"></i>
                         </div>
                         <h3>starling102429</h3>
                         <p>Creador de paneles CEF web dinámicos en HTML/CSS/JS integrados perfectamente con Lua MTA.</p>
@@ -129,8 +130,8 @@
 
                     <div class="creator-card glass">
                         <div class="creator-header">
+                            <img src="https://cdn.discordapp.com/embed/avatars/3.png" id="creator-avatar-yoaldo" class="creator-profile-img" alt="yoaldo">
                             <span class="role-badge green">Scripter & Admin</span>
-                            <i class="fa-solid fa-terminal creator-avatar-icon"></i>
                         </div>
                         <h3>yoaldo</h3>
                         <p>Desarrollador de sistemas de facciones, inventarios avanzados, mecánicas de rol y soporte técnico.</p>
@@ -149,6 +150,52 @@
                     <div class="cart-summary">
                         <h3>TOTAL: <span id="cart-total">$0.00</span></h3>
                         <button onclick="checkout()" class="btn-glow">PROCESAR COMPRA</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN MI PERFIL -->
+            <section id="perfil" class="section">
+                <div class="section-header">
+                    <h2>MI PERFIL DE <span>USUARIO</span></h2>
+                </div>
+                <div class="profile-layout">
+                    <!-- Pestañas de Perfil -->
+                    <div class="profile-tabs glass">
+                        <button class="profile-tab-btn active" onclick="switchProfileTab('edit', this)"><i class="fa-solid fa-user-pen"></i> Editar Perfil</button>
+                        <button class="profile-tab-btn" onclick="switchProfileTab('purchases', this)"><i class="fa-solid fa-box-open"></i> Productos Obtenidos</button>
+                        <button class="profile-tab-btn" onclick="switchProfileTab('downloads', this)"><i class="fa-solid fa-download"></i> Enlaces de Descarga</button>
+                    </div>
+
+                    <!-- Contenido Perfil -->
+                    <div class="profile-content glass">
+                        <!-- 1. Editar Perfil -->
+                        <div id="tab-edit" class="profile-tab-content active">
+                            <h3>Ajustes de Perfil</h3>
+                            <form id="edit-profile-form">
+                                <div class="form-group">
+                                    <label>Nombre de Usuario</label>
+                                    <input type="text" id="profile-input-username" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Foto de Perfil (Subir imagen desde tu dispositivo)</label>
+                                    <input type="file" id="profile-input-avatar" accept="image/*">
+                                </div>
+                                <button type="submit" class="btn-glow">GUARDAR CAMBIOS</button>
+                            </form>
+                        </div>
+
+                        <!-- 2. Productos Obtenidos -->
+                        <div id="tab-purchases" class="profile-tab-content">
+                            <h3>Mis Compras Registradas</h3>
+                            <div id="owned-products-grid" class="resources-grid"></div>
+                        </div>
+
+                        <!-- 3. Enlaces de Descarga -->
+                        <div id="tab-downloads" class="profile-tab-content">
+                            <h3>Enlaces Directos de Descarga</h3>
+                            <ul id="downloads-list" class="downloads-list"></ul>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -190,9 +237,13 @@
                                 </select>
                                 <input type="number" id="res-price" step="0.01" placeholder="Precio ($ USD)" required>
                             </div>
+                            
+                            <!-- SELECCIÓN DE IMAGEN DESDE EL DISPOSITIVO -->
                             <div class="form-group">
-                                <input type="url" id="res-image" placeholder="URL de la Imagen (Direct Link / Imgur)" required>
+                                <label style="display: block; margin-bottom: 5px; color: var(--neon-primary); font-size:0.9rem;">Imagen del Recurso (Seleccionar de tu dispositivo):</label>
+                                <input type="file" id="res-image-file" accept="image/*" required>
                             </div>
+
                             <div class="form-group">
                                 <input type="url" id="res-link" placeholder="Enlace de Descarga (Mega, Drive, Mediafire)" required>
                             </div>

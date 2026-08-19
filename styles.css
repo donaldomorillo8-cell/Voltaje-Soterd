@@ -162,9 +162,11 @@ body {
     align-items: center;
     gap: 12px;
     padding: 8px 16px;
+    transition: 0.3s;
 }
+.user-card:hover { border-color: var(--neon-primary); }
 
-.user-card img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--neon-primary); }
+.user-card img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--neon-primary); object-fit: cover; }
 .user-details { display: flex; flex-direction: column; }
 .user-details span { font-weight: 700; font-size: 0.95rem; line-height: 1; }
 .user-details small { color: var(--neon-primary); font-size: 0.75rem; }
@@ -209,7 +211,7 @@ body {
 .creator-card:hover { transform: translateY(-5px); border-color: var(--neon-primary); }
 
 .creator-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.creator-avatar-icon { font-size: 2rem; color: var(--text-main); }
+.creator-profile-img { width: 55px; height: 55px; border-radius: 50%; border: 2px solid var(--neon-primary); object-fit: cover; }
 
 .role-badge {
     font-size: 0.75rem;
@@ -223,7 +225,7 @@ body {
 .role-badge.purple { background: rgba(168, 85, 247, 0.2); color: var(--neon-purple); border: 1px solid var(--neon-purple); }
 .role-badge.green { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }
 
-.creator-card h3 { font-family: var(--font-heading); font-size: 1.4rem; margin-bottom: 10px; }
+.creator-card h3 { font-family: var(--font-heading); font-size: 1.2rem; margin-bottom: 10px; word-break: break-all; }
 .creator-card p { color: var(--text-muted); font-size: 0.95rem; margin-bottom: 20px; min-height: 60px; }
 
 .discord-tag-box {
@@ -231,10 +233,60 @@ body {
     color: #818cf8;
     padding: 10px;
     border-radius: 8px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 600;
     word-break: break-all;
 }
+
+/* PERFIL DE USUARIO Y SECCIONES */
+.profile-layout { display: grid; grid-template-columns: 280px 1fr; gap: 25px; }
+.profile-tabs { padding: 20px; display: flex; flex-direction: column; gap: 10px; height: fit-content; }
+.profile-tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: 0.3s;
+}
+.profile-tab-btn:hover, .profile-tab-btn.active {
+    background: rgba(0, 240, 255, 0.15);
+    color: white;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.2);
+}
+
+.profile-content { padding: 30px; }
+.profile-tab-content { display: none; }
+.profile-tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+.profile-tab-content h3 { font-family: var(--font-heading); margin-bottom: 20px; color: var(--neon-primary); }
+
+.downloads-list { list-style: none; display: flex; flex-direction: column; gap: 15px; }
+.download-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-radius: 12px;
+}
+.btn-download-direct {
+    background: #10b981;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.3s;
+}
+.btn-download-direct:hover { background: #059669; }
 
 .filter-bar { display: inline-flex; gap: 10px; padding: 6px; margin-top: 15px; }
 .filter-btn {
