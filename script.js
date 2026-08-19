@@ -1,6 +1,6 @@
 // CONFIGURACIÓN OFICIAL DE DISCORD OAUTH2 (CLIENT ID INTEGRADO)
 const CLIENT_ID = '1517661392369483907'; 
-const REDIRECT_URI = 'http://localhost:5500/index.html';
+const REDIRECT_URI = 'https://voltaje-soterd.vercel.app/';
 
 // CREADORES AUTORIZADOS PARA EL PANEL ADMIN
 const CREATORS = [
