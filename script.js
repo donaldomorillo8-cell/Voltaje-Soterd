@@ -255,6 +255,30 @@ function renderResources(filter, btn) {
         `;
         grid.appendChild(card);
     });
+
+    populateReviewProductSelect();
+}
+
+// Llena el selector "Producto (opcional)" del formulario de reseñas con
+// los recursos disponibles en la tienda, para que el usuario pueda opinar
+// sobre uno en particular (o dejar "Calificación general").
+function populateReviewProductSelect() {
+    const select = document.getElementById('review-product');
+    if (!select) return;
+
+    const previousValue = select.value;
+    select.innerHTML = '<option value="">Calificación general</option>';
+
+    resources.forEach(res => {
+        const option = document.createElement('option');
+        option.value = res.id;
+        option.textContent = res.name;
+        select.appendChild(option);
+    });
+
+    if (resources.some(r => String(r.id) === previousValue)) {
+        select.value = previousValue;
+    }
 }
 
 // DELEGACIÓN DE EVENTOS: un solo listener para toda la grilla de recursos.
@@ -707,6 +731,10 @@ if (addReviewForm) {
         const text = document.getElementById('review-text').value.trim();
         if (!text) return;
 
+        const productSelect = document.getElementById('review-product');
+        const productId = productSelect && productSelect.value ? Number(productSelect.value) : null;
+        const productMatch = productId ? resources.find(r => r.id === productId) : null;
+
         const newReview = {
             id: Date.now(),
             userId: currentUser.id,
@@ -714,7 +742,9 @@ if (addReviewForm) {
             avatar: currentUser.avatar,
             rating: rating,
             text: text,
-            date: new Date().toLocaleDateString()
+            date: new Date().toLocaleDateString(),
+            productId: productMatch ? productMatch.id : null,
+            productName: productMatch ? productMatch.name : null
         };
 
         reviews.unshift(newReview);
@@ -731,6 +761,22 @@ if (addReviewForm) {
 }
 
 // RENDER: reseñas de toda la comunidad (sección de Inicio)
+// Genera el HTML de una tarjeta de reseña (reutilizado en inicio y perfil)
+function buildReviewCardHtml(rev) {
+    const tag = rev.productName ? `<span class="review-tag">${escapeHtml(rev.productName)}</span>` : '';
+    return `
+        <div class="review-card-header">
+            <img src="${rev.avatar}" alt="${escapeHtml(rev.username)}">
+            <div>
+                <strong>${escapeHtml(rev.username)}</strong>
+                <div class="review-stars">${buildStarsHtml(rev.rating)}</div>
+            </div>
+        </div>
+        <p>${escapeHtml(rev.text)}</p>
+        ${tag}
+    `;
+}
+
 function renderReviews() {
     const container = document.getElementById('reviews-list');
     if (!container) return;
@@ -744,16 +790,7 @@ function renderReviews() {
     reviews.slice(0, 9).forEach(rev => {
         const card = document.createElement('div');
         card.className = 'review-card glass';
-        card.innerHTML = `
-            <div class="review-card-header">
-                <img src="${rev.avatar}" alt="${escapeHtml(rev.username)}">
-                <div>
-                    <strong>${escapeHtml(rev.username)}</strong>
-                    <div class="review-stars">${buildStarsHtml(rev.rating)}</div>
-                </div>
-            </div>
-            <p>${escapeHtml(rev.text)}</p>
-        `;
+        card.innerHTML = buildReviewCardHtml(rev);
         container.appendChild(card);
     });
 }
@@ -774,16 +811,7 @@ function renderMyReviews() {
     mine.forEach(rev => {
         const card = document.createElement('div');
         card.className = 'review-card glass';
-        card.innerHTML = `
-            <div class="review-card-header">
-                <img src="${rev.avatar}" alt="${escapeHtml(rev.username)}">
-                <div>
-                    <strong>${escapeHtml(rev.username)}</strong>
-                    <div class="review-stars">${buildStarsHtml(rev.rating)}</div>
-                </div>
-            </div>
-            <p>${escapeHtml(rev.text)}</p>
-        `;
+        card.innerHTML = buildReviewCardHtml(rev);
         container.appendChild(card);
     });
 }

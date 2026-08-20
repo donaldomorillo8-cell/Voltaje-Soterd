@@ -524,13 +524,44 @@ body {
 
 .star-rating-input {
     display: flex;
-    gap: 8px;
-    font-size: 1.6rem;
-    color: rgba(255, 255, 255, 0.2);
+    gap: 10px;
+    font-size: 1.9rem;
+    color: rgba(255, 255, 255, 0.15);
     margin-bottom: 4px;
 }
 .star-rating-input i { cursor: pointer; transition: 0.15s; }
 .star-rating-input i.active { color: #ffb800; }
+
+.review-form-subtitle { color: var(--text-muted); margin: -8px 0 22px; font-size: 0.95rem; }
+
+.btn-review-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--text-main);
+    color: #0a0c16;
+    border: none;
+    padding: 13px 26px;
+    border-radius: 10px;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.btn-review-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 255, 255, 0.15); }
+
+.review-tag {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--neon-primary);
+    background: rgba(0, 240, 255, 0.08);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    padding: 3px 10px;
+    border-radius: 20px;
+}
 
 .creators-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; }
 .creator-card { padding: 30px; position: relative; transition: 0.3s; }

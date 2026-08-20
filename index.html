@@ -289,10 +289,15 @@
 
                         <!-- 4. Dejar Reseña -->
                         <div id="tab-reviews" class="profile-tab-content">
-                            <h3>Cuéntale a la comunidad tu experiencia</h3>
+                            <h3>Deja tu Reseña</h3>
+                            <p class="review-form-subtitle">Cuéntanos sobre tu experiencia con nuestros sistemas.</p>
                             <form id="add-review-form">
                                 <div class="form-group">
-                                    <label>Tu calificación</label>
+                                    <label>Tu Comentario</label>
+                                    <textarea id="review-text" rows="4" placeholder="¿Qué te pareció el script? ¿Fácil de configurar? ¿Ayudó el soporte?..." required></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Tu Puntuación</label>
                                     <div id="star-rating-input" class="star-rating-input">
                                         <i class="fa-solid fa-star" data-value="1"></i>
                                         <i class="fa-solid fa-star" data-value="2"></i>
@@ -303,10 +308,12 @@
                                     <input type="hidden" id="review-rating-value" value="5">
                                 </div>
                                 <div class="form-group">
-                                    <label>Tu comentario</label>
-                                    <textarea id="review-text" rows="4" placeholder="¿Qué te pareció Voltaje Stores?" required></textarea>
+                                    <label>Producto (opcional)</label>
+                                    <select id="review-product">
+                                        <option value="">Calificación general</option>
+                                    </select>
                                 </div>
-                                <button type="submit" class="btn-glow">PUBLICAR RESEÑA</button>
+                                <button type="submit" class="btn-review-submit"><i class="fa-solid fa-paper-plane"></i> ENVIAR RESEÑA</button>
                             </form>
 
                             <h3 style="margin-top:35px;">Tus reseñas publicadas</h3>
