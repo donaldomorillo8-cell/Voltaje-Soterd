@@ -19,26 +19,25 @@ const CREATORS = [
 let currentUser = JSON.parse(localStorage.getItem('voltaje_current_user')) || null;
 let cart = JSON.parse(localStorage.getItem('voltaje_cart')) || [];
 let resources = JSON.parse(localStorage.getItem('voltaje_resources')) || [];
-
 let userPurchases = JSON.parse(localStorage.getItem('voltaje_purchases')) || {};
 let registeredUsers = JSON.parse(localStorage.getItem('voltaje_users')) || [];
-// Administradores añadidos manualmente desde el Panel Creador (además de los CREATORS base)
 let extraAdmins = JSON.parse(localStorage.getItem('voltaje_extra_admins')) || [];
-// Reseñas dejadas por los usuarios en su perfil, mostradas en "Lo que dice la comunidad"
 let reviews = JSON.parse(localStorage.getItem('voltaje_reviews')) || [];
 
 // 1. INICIAR SESIÓN CON DISCORD
 function loginWithDiscord() {
     const cleanClientId = CLIENT_ID.trim();
     const cleanRedirectUri = encodeURIComponent(REDIRECT_URI.trim());
-
     const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${cleanClientId}&redirect_uri=${cleanRedirectUri}&response_type=token&scope=identify`;
-
     window.location.href = discordAuthUrl;
 }
 
-// 2. LEER ACCESSTOKEN DE LA URL AL VOLVER DE DISCORD (Y RESTAURAR SESIÓN / PAGOS)
+// 2. LEER ACCESSTOKEN DE LA URL AL VOLVER DE DISCORD
 window.addEventListener('DOMContentLoaded', () => {
+    // Inicializar listeners del formulario de edición de perfil y delegaciones
+    initProfileEvents();
+    initCartEvents();
+
     const fragment = new URLSearchParams(window.location.hash.slice(1));
     const accessToken = fragment.get('access_token');
 
@@ -59,14 +58,12 @@ window.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Si ya había una sesión guardada localmente (por ejemplo, al volver de PayPal), la restauramos
     if (currentUser) {
         restoreSession();
         handlePaypalReturn();
     }
 });
 
-// RESTAURAR UNA SESIÓN YA INICIADA (SIN VOLVER A PASAR POR DISCORD)
 function restoreSession() {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
@@ -88,7 +85,6 @@ function restoreSession() {
     updateCart();
 }
 
-// 3. CONFIGURAR LA SESIÓN Y ROLES
 function setupUserSession(discordUser) {
     const defaultAvatar = discordUser.avatar 
         ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
@@ -97,13 +93,11 @@ function setupUserSession(discordUser) {
     const cleanUsername = discordUser.username.trim().toLowerCase();
     const isCreator = CREATORS.includes(cleanUsername) || extraAdmins.includes(cleanUsername);
 
-    // Si es un creador, guardamos su avatar oficial para la sección de creadores
     if(cleanUsername.includes("x_donald")) setCreatorAvatar("creator-avatar-x_donald", defaultAvatar);
     if(cleanUsername.includes("jasdiel")) setCreatorAvatar("creator-avatar-jasdiel", defaultAvatar);
     if(cleanUsername.includes("starling")) setCreatorAvatar("creator-avatar-starling", defaultAvatar);
     if(cleanUsername.includes("yoaldo")) setCreatorAvatar("creator-avatar-yoaldo", defaultAvatar);
 
-    // Cargar perfil guardado localmente si existe edición previa
     const savedCustomProfile = JSON.parse(localStorage.getItem(`voltaje_profile_${discordUser.id}`));
 
     currentUser = {
@@ -152,10 +146,12 @@ function setCreatorAvatar(elementId, avatarUrl) {
 }
 
 function updateProfileUI() {
+    if (!currentUser) return;
     document.getElementById('user-name').innerText = currentUser.username;
     document.getElementById('user-avatar').src = currentUser.avatar;
     document.getElementById('user-role').innerText = currentUser.isCreator ? "Creador / Admin" : "Cliente VIP";
-    document.getElementById('profile-input-username').value = currentUser.username;
+    const usernameInput = document.getElementById('profile-input-username');
+    if (usernameInput) usernameInput.value = currentUser.username;
 }
 
 function logout() {
@@ -164,7 +160,6 @@ function logout() {
     window.location.href = REDIRECT_URI;
 }
 
-// NAVEGACIÓN ENTRE SECCIONES
 function showSection(sectionId, btn) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -173,7 +168,6 @@ function showSection(sectionId, btn) {
     if(btn) btn.classList.add('active');
 }
 
-// PESTAÑAS DENTRO DEL PERFIL
 function switchProfileTab(tabName, btn) {
     document.querySelectorAll('.profile-tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.profile-tab-content').forEach(c => c.classList.remove('active'));
@@ -182,23 +176,29 @@ function switchProfileTab(tabName, btn) {
     if(btn) btn.classList.add('active');
 }
 
-// EDITAR PERFIL (NOMBRE Y FOTO DESDE EL DISPOSITIVO)
-document.getElementById('edit-profile-form').addEventListener('submit', (e) => {
-    e.preventDefault();
+// CORRECCIÓN: EVENTO EDITAR PERFIL
+function initProfileEvents() {
+    const editForm = document.getElementById('edit-profile-form');
+    if (editForm) {
+        editForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!currentUser) return alert("Debes iniciar sesión.");
 
-    const newUsername = document.getElementById('profile-input-username').value;
-    const fileInput = document.getElementById('profile-input-avatar');
+            const newUsername = document.getElementById('profile-input-username').value.trim();
+            const fileInput = document.getElementById('profile-input-avatar');
 
-    if (fileInput.files && fileInput.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            saveProfileChanges(newUsername, e.target.result);
-        };
-        reader.readAsDataURL(fileInput.files[0]);
-    } else {
-        saveProfileChanges(newUsername, currentUser.avatar);
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    saveProfileChanges(newUsername, e.target.result);
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                saveProfileChanges(newUsername, currentUser.avatar);
+            }
+        });
     }
-});
+}
 
 function saveProfileChanges(username, avatar) {
     currentUser.username = username;
@@ -209,13 +209,20 @@ function saveProfileChanges(username, avatar) {
         avatar: avatar
     }));
 
+    // Actualizar usuario en lista global
+    const idx = registeredUsers.findIndex(u => u.id === currentUser.id);
+    if (idx !== -1) {
+        registeredUsers[idx].username = username;
+        registeredUsers[idx].avatar = avatar;
+        localStorage.setItem('voltaje_users', JSON.stringify(registeredUsers));
+    }
+
+    localStorage.setItem('voltaje_current_user', JSON.stringify(currentUser));
     updateProfileUI();
+    renderRanking();
     alert("¡Perfil actualizado con éxito!");
 }
 
-// Escapa texto para poder insertarlo de forma segura dentro de atributos/HTML
-// (evita que comillas, < , > , etc. en el nombre o la descripción de un recurso
-// rompan el HTML generado y dejen botones sin funcionar)
 function escapeHtml(str) {
     return String(str)
         .replace(/&/g, '&amp;')
@@ -225,7 +232,7 @@ function escapeHtml(str) {
         .replace(/'/g, '&#39;');
 }
 
-// RENDER DE PRODUCTOS EN LA TIENDA
+// CORRECCIÓN: RENDERIZADO Y DELEGACIÓN DE EVENTOS EN TIENDA
 function renderResources(filter, btn) {
     if(btn) {
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -233,6 +240,7 @@ function renderResources(filter, btn) {
     }
 
     const grid = document.getElementById('resources-grid');
+    if (!grid) return;
     grid.innerHTML = '';
 
     const list = filter === 'all' ? resources : resources.filter(r => r.category === filter);
@@ -240,9 +248,6 @@ function renderResources(filter, btn) {
     list.forEach(res => {
         const card = document.createElement('div');
         card.className = 'res-card glass';
-        // Usamos data-id en vez de onclick="...${res.id}..." para que el id
-        // (o cualquier caracter especial en el nombre/descripción) nunca pueda
-        // romper el atributo onclick generado.
         card.innerHTML = `
             <img src="${res.image}" alt="${escapeHtml(res.name)}" data-action="open" data-id="${res.id}">
             <div class="res-content">
@@ -259,44 +264,31 @@ function renderResources(filter, btn) {
     populateReviewProductSelect();
 }
 
-// Llena el selector "Producto (opcional)" del formulario de reseñas con
-// los recursos disponibles en la tienda, para que el usuario pueda opinar
-// sobre uno en particular (o dejar "Calificación general").
-function populateReviewProductSelect() {
-    const select = document.getElementById('review-product');
-    if (!select) return;
+function initCartEvents() {
+    const grid = document.getElementById('resources-grid');
+    if (grid) {
+        grid.addEventListener('click', (e) => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
 
-    const previousValue = select.value;
-    select.innerHTML = '<option value="">Calificación general</option>';
+            const id = Number(target.dataset.id);
+            if (target.dataset.action === 'open') {
+                openResourceModal(id);
+            } else if (target.dataset.action === 'add') {
+                addToCart(id);
+            }
+        });
+    }
 
-    resources.forEach(res => {
-        const option = document.createElement('option');
-        option.value = res.id;
-        option.textContent = res.name;
-        select.appendChild(option);
-    });
-
-    if (resources.some(r => String(r.id) === previousValue)) {
-        select.value = previousValue;
+    const modalAddBtn = document.getElementById('modal-add-btn');
+    if (modalAddBtn) {
+        modalAddBtn.addEventListener('click', () => {
+            const id = Number(modalAddBtn.dataset.id);
+            if (!Number.isNaN(id)) addToCart(id);
+        });
     }
 }
 
-// DELEGACIÓN DE EVENTOS: un solo listener para toda la grilla de recursos.
-// Así los botones "AÑADIR AL CARRITO" y "VER DETALLES" siempre funcionan,
-// sin importar cuántas veces se vuelva a dibujar la grilla.
-document.getElementById('resources-grid').addEventListener('click', (e) => {
-    const target = e.target.closest('[data-action]');
-    if (!target) return;
-
-    const id = Number(target.dataset.id);
-    if (target.dataset.action === 'open') {
-        openResourceModal(id);
-    } else if (target.dataset.action === 'add') {
-        addToCart(id);
-    }
-});
-
-// MODAL DE DETALLES DE UN RECURSO (para descripciones largas)
 function openResourceModal(id) {
     const res = resources.find(r => r.id === id);
     if (!res) return;
@@ -313,13 +305,6 @@ function openResourceModal(id) {
     document.body.style.overflow = 'hidden';
 }
 
-// Listener único para el botón "AÑADIR AL CARRITO" del modal (se configura una
-// sola vez; openResourceModal solo actualiza qué id tiene guardado el botón).
-document.getElementById('modal-add-btn').addEventListener('click', () => {
-    const id = Number(document.getElementById('modal-add-btn').dataset.id);
-    if (!Number.isNaN(id)) addToCart(id);
-});
-
 function closeResourceModal() {
     document.getElementById('resource-modal').classList.add('hidden');
     document.body.style.overflow = '';
@@ -329,14 +314,10 @@ function filterResources(category, btn) {
     renderResources(category, btn);
 }
 
-// CARRITO DE COMPRAS Y PROCESO DE PAGO
 function addToCart(id) {
     const item = resources.find(r => r.id === id);
-
-    // Si el recurso ya no existe (por ejemplo, fue eliminado por un admin
-    // mientras la página seguía abierta) no rompemos la app: avisamos y salimos.
     if (!item) {
-        alert("Ese recurso ya no está disponible. Actualiza la página e intenta de nuevo.");
+        alert("Ese recurso ya no está disponible.");
         return;
     }
 
@@ -348,8 +329,12 @@ function addToCart(id) {
 }
 
 function updateCart() {
-    document.getElementById('cart-count').innerText = cart.length;
+    const countEl = document.getElementById('cart-count');
+    if (countEl) countEl.innerText = cart.length;
+
     const container = document.getElementById('cart-items');
+    if (!container) return;
+
     container.innerHTML = '';
     let total = 0;
 
@@ -363,7 +348,7 @@ function updateCart() {
         row.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:rgba(0,0,0,0.3); padding:10px 15px; border-radius:8px;";
         row.innerHTML = `
             <div>
-                <strong>${item.name}</strong>
+                <strong>${escapeHtml(item.name)}</strong>
                 <div style="color:#10b981; font-size:0.9rem;">$${item.price.toFixed(2)} USD</div>
             </div>
             <button onclick="removeFromCart(${index})" style="background:var(--neon-secondary); color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
@@ -371,7 +356,8 @@ function updateCart() {
         container.appendChild(row);
     });
 
-    document.getElementById('cart-total').innerText = `$${total.toFixed(2)} USD`;
+    const totalEl = document.getElementById('cart-total');
+    if (totalEl) totalEl.innerText = `$${total.toFixed(2)} USD`;
 }
 
 function removeFromCart(index) {
@@ -380,12 +366,10 @@ function removeFromCart(index) {
     updateCart();
 }
 
-// PAGO CON PAYPAL: redirige a PayPal y solo desbloquea los recursos cuando el pago se confirma
 function checkout() {
     if (cart.length === 0) return alert("Tu carrito está vacío.");
     if (!currentUser) return alert("Debes iniciar sesión con Discord.");
 
-    // Guardamos el carrito por si el usuario vuelve desde PayPal tras el pago
     localStorage.setItem('voltaje_cart', JSON.stringify(cart));
 
     const itemIds = cart.map(item => item.id);
@@ -412,7 +396,6 @@ function checkout() {
     window.location.href = `https://www.paypal.com/cgi-bin/webscr?${params.toString()}`;
 }
 
-// PROCESA EL REGRESO DESDE PAYPAL Y DESBLOQUEA LOS ENLACES SOLO SI EL PAGO FUE EXITOSO
 function handlePaypalReturn() {
     const params = new URLSearchParams(window.location.search);
     const paymentStatus = params.get('voltaje_payment');
@@ -453,7 +436,6 @@ function handlePaypalReturn() {
     window.history.replaceState({}, document.title, window.location.pathname);
 }
 
-// RANKING DE TOP COMPRADORES (SECCIÓN INICIO)
 function renderRanking() {
     const container = document.getElementById('ranking-list');
     if (!container) return;
@@ -479,9 +461,9 @@ function renderRanking() {
         item.className = 'ranking-item glass';
         item.innerHTML = `
             <div class="rank-position">#${index + 1}</div>
-            <img src="${u.avatar}" alt="${u.username}">
+            <img src="${u.avatar}" alt="${escapeHtml(u.username)}">
             <div class="ranking-user">
-                <strong>${u.username}</strong>
+                <strong>${escapeHtml(u.username)}</strong>
                 <small>Miembro desde ${u.date}</small>
             </div>
             <div class="ranking-count">${u.count} compra${u.count !== 1 ? 's' : ''}</div>
@@ -490,13 +472,14 @@ function renderRanking() {
     });
 }
 
-// RENDER DE PRODUCTOS OBTENIDOS Y ENLACES
 function renderOwnedProducts() {
     if (!currentUser) return;
     const purchases = userPurchases[currentUser.id] || [];
 
     const grid = document.getElementById('owned-products-grid');
     const downloadsList = document.getElementById('downloads-list');
+
+    if (!grid || !downloadsList) return;
 
     grid.innerHTML = '';
     downloadsList.innerHTML = '';
@@ -508,25 +491,23 @@ function renderOwnedProducts() {
     }
 
     purchases.forEach(res => {
-        // Render tarjeta
         const card = document.createElement('div');
         card.className = 'res-card glass';
         card.innerHTML = `
-            <img src="${res.image}" alt="${res.name}">
+            <img src="${res.image}" alt="${escapeHtml(res.name)}">
             <div class="res-content">
-                <h3>${res.name}</h3>
-                <p>${res.desc}</p>
+                <h3>${escapeHtml(res.name)}</h3>
+                <p>${escapeHtml(res.desc)}</p>
                 <a href="${res.link}" target="_blank" class="btn-glow" style="text-align:center; text-decoration:none; display:block;">DESCARGAR AHORA</a>
             </div>
         `;
         grid.appendChild(card);
 
-        // Render lista de descargas
         const li = document.createElement('li');
         li.className = 'download-item glass';
         li.innerHTML = `
             <div>
-                <strong>${res.name}</strong>
+                <strong>${escapeHtml(res.name)}</strong>
                 <div style="color:var(--text-muted); font-size:0.85rem;">Categoría: ${res.category.toUpperCase()}</div>
             </div>
             <a href="${res.link}" target="_blank" class="btn-download-direct"><i class="fa-solid fa-cloud-arrow-down"></i> Descargar</a>
@@ -535,48 +516,50 @@ function renderOwnedProducts() {
     });
 }
 
-// PANEL ADMIN: PUBLICAR RECURSO SUBIENDO IMAGEN DEL DISPOSITIVO
-document.getElementById('add-resource-form').addEventListener('submit', (e) => {
-    e.preventDefault();
+// PANEL ADMIN: PUBLICAR RECURSO
+const addResourceForm = document.getElementById('add-resource-form');
+if (addResourceForm) {
+    addResourceForm.addEventListener('submit', (e) => {
+        e.preventDefault();
 
-    const name = document.getElementById('res-name').value;
-    const category = document.getElementById('res-category').value;
-    const price = parseFloat(document.getElementById('res-price').value);
-    const link = document.getElementById('res-link').value;
-    const desc = document.getElementById('res-desc').value;
-    const imageFile = document.getElementById('res-image-file').files[0];
+        const name = document.getElementById('res-name').value;
+        const category = document.getElementById('res-category').value;
+        const price = parseFloat(document.getElementById('res-price').value);
+        const link = document.getElementById('res-link').value;
+        const desc = document.getElementById('res-desc').value;
+        const imageFile = document.getElementById('res-image-file').files[0];
 
-    if (!imageFile) return alert("Por favor selecciona una imagen desde tu dispositivo.");
+        if (!imageFile) return alert("Por favor selecciona una imagen desde tu dispositivo.");
 
-    const reader = new FileReader();
-    reader.onload = function(event) {
-        const newRes = {
-            id: Date.now(),
-            name: name,
-            category: category,
-            price: price,
-            image: event.target.result, // Se convierte en base64 para guardarse y mostrarse
-            link: link,
-            desc: desc
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const newRes = {
+                id: Date.now(),
+                name: name,
+                category: category,
+                price: price,
+                image: event.target.result,
+                link: link,
+                desc: desc
+            };
+
+            resources.push(newRes);
+            localStorage.setItem('voltaje_resources', JSON.stringify(resources));
+            alert("¡Recurso publicado exitosamente en la tienda!");
+
+            addResourceForm.reset();
+            renderResources('all');
+            renderAdminResources();
         };
 
-        resources.push(newRes);
-        localStorage.setItem('voltaje_resources', JSON.stringify(resources));
-        alert("¡Recurso publicado exitosamente en la tienda!");
+        reader.readAsDataURL(imageFile);
+    });
+}
 
-        document.getElementById('add-resource-form').reset();
-        renderResources('all');
-        renderAdminResources();
-    };
-
-    reader.readAsDataURL(imageFile);
-});
-
-// PANEL ADMIN: ELIMINAR UN RECURSO DE LA TIENDA
 function deleteResource(id) {
     const item = resources.find(r => r.id === id);
     if (!item) return;
-    if (!confirm(`¿Seguro que quieres eliminar "${item.name}" de la tienda? Esta acción no se puede deshacer.`)) return;
+    if (!confirm(`¿Seguro que quieres eliminar "${item.name}" de la tienda?`)) return;
 
     resources = resources.filter(r => r.id !== id);
     localStorage.setItem('voltaje_resources', JSON.stringify(resources));
@@ -585,7 +568,6 @@ function deleteResource(id) {
     renderAdminResources();
 }
 
-// PANEL ADMIN: LISTA DE RECURSOS CON OPCIÓN DE ELIMINAR
 function renderAdminResources() {
     const list = document.getElementById('admin-resource-list');
     if (!list) return;
@@ -599,9 +581,9 @@ function renderAdminResources() {
     resources.forEach(res => {
         const li = document.createElement('li');
         li.innerHTML = `
-            <img src="${res.image}" alt="${res.name}" style="width:34px; height:34px; border-radius:8px; object-fit:cover;">
+            <img src="${res.image}" alt="${escapeHtml(res.name)}" style="width:34px; height:34px; border-radius:8px; object-fit:cover;">
             <div style="flex-grow:1;">
-                <strong>${res.name}</strong>
+                <strong>${escapeHtml(res.name)}</strong>
                 <br><small style="color:var(--text-muted)">${res.category.toUpperCase()} · $${res.price.toFixed(2)} USD</small>
             </div>
             <button onclick="deleteResource(${res.id})" class="btn-icon-danger" title="Eliminar recurso"><i class="fa-solid fa-trash"></i></button>
@@ -610,27 +592,28 @@ function renderAdminResources() {
     });
 }
 
-// PANEL ADMIN: AÑADIR OTRO ADMINISTRADOR POR SU USUARIO DE DISCORD
-document.getElementById('add-admin-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const input = document.getElementById('admin-username-input');
-    const newAdmin = input.value.trim().toLowerCase();
+const addAdminForm = document.getElementById('add-admin-form');
+if (addAdminForm) {
+    addAdminForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('admin-username-input');
+        const newAdmin = input.value.trim().toLowerCase();
 
-    if (!newAdmin) return;
-    if (CREATORS.includes(newAdmin) || extraAdmins.includes(newAdmin)) {
-        alert("Ese usuario ya tiene permisos de administrador.");
-        return;
-    }
+        if (!newAdmin) return;
+        if (CREATORS.includes(newAdmin) || extraAdmins.includes(newAdmin)) {
+            alert("Ese usuario ya tiene permisos de administrador.");
+            return;
+        }
 
-    extraAdmins.push(newAdmin);
-    localStorage.setItem('voltaje_extra_admins', JSON.stringify(extraAdmins));
+        extraAdmins.push(newAdmin);
+        localStorage.setItem('voltaje_extra_admins', JSON.stringify(extraAdmins));
 
-    input.value = '';
-    renderAdminsList();
-    alert(`"${newAdmin}" ahora es administrador. Tendrá acceso al Panel Creador la próxima vez que inicie sesión.`);
-});
+        input.value = '';
+        renderAdminsList();
+        alert(`"${newAdmin}" ahora es administrador.`);
+    });
+}
 
-// PANEL ADMIN: QUITAR UN ADMINISTRADOR AÑADIDO MANUALMENTE
 function removeAdmin(username) {
     if (!confirm(`¿Quitar permisos de administrador a "${username}"?`)) return;
     extraAdmins = extraAdmins.filter(u => u !== username);
@@ -638,7 +621,6 @@ function removeAdmin(username) {
     renderAdminsList();
 }
 
-// PANEL ADMIN: LISTA DE ADMINISTRADORES (BASE + AÑADIDOS)
 function renderAdminsList() {
     const list = document.getElementById('admin-manage-list');
     if (!list) return;
@@ -670,13 +652,14 @@ function renderAdminsList() {
 
 function renderUsers() {
     const list = document.getElementById('user-list');
+    if (!list) return;
     list.innerHTML = '';
     registeredUsers.forEach(u => {
         const li = document.createElement('li');
         li.innerHTML = `
             <img src="${u.avatar}" alt="Avatar">
             <div>
-                <strong>${u.username}</strong>
+                <strong>${escapeHtml(u.username)}</strong>
                 <br><small style="color:var(--text-muted)">Registrado: ${u.date}</small>
             </div>
         `;
@@ -684,9 +667,25 @@ function renderUsers() {
     });
 }
 
-// ===================== RESEÑAS DE LA COMUNIDAD =====================
+function populateReviewProductSelect() {
+    const select = document.getElementById('review-product');
+    if (!select) return;
 
-// Devuelve un bloque de <i> de estrellas (llenas/vacías) para una calificación 1-5
+    const previousValue = select.value;
+    select.innerHTML = '<option value="">Calificación general</option>';
+
+    resources.forEach(res => {
+        const option = document.createElement('option');
+        option.value = res.id;
+        option.textContent = res.name;
+        select.appendChild(option);
+    });
+
+    if (resources.some(r => String(r.id) === previousValue)) {
+        select.value = previousValue;
+    }
+}
+
 function buildStarsHtml(rating) {
     let html = '';
     for (let i = 1; i <= 5; i++) {
@@ -695,7 +694,6 @@ function buildStarsHtml(rating) {
     return html;
 }
 
-// Selector de estrellas interactivo del formulario "Dejar Reseña"
 const starRatingInput = document.getElementById('star-rating-input');
 if (starRatingInput) {
     const ratingHiddenInput = document.getElementById('review-rating-value');
@@ -720,7 +718,6 @@ if (starRatingInput) {
     starRatingInput.addEventListener('mouseleave', () => paintStars(Number(ratingHiddenInput.value)));
 }
 
-// ENVIAR UNA NUEVA RESEÑA DESDE EL PERFIL
 const addReviewForm = document.getElementById('add-review-form');
 if (addReviewForm) {
     addReviewForm.addEventListener('submit', (e) => {
@@ -752,7 +749,6 @@ if (addReviewForm) {
 
         addReviewForm.reset();
         document.getElementById('review-rating-value').value = 5;
-        if (starRatingInput) paintStars(5);
 
         renderReviews();
         renderMyReviews();
@@ -760,8 +756,6 @@ if (addReviewForm) {
     });
 }
 
-// RENDER: reseñas de toda la comunidad (sección de Inicio)
-// Genera el HTML de una tarjeta de reseña (reutilizado en inicio y perfil)
 function buildReviewCardHtml(rev) {
     const tag = rev.productName ? `<span class="review-tag">${escapeHtml(rev.productName)}</span>` : '';
     return `
@@ -795,7 +789,6 @@ function renderReviews() {
     });
 }
 
-// RENDER: solo las reseñas del usuario actual (pestaña "Dejar Reseña" del perfil)
 function renderMyReviews() {
     const container = document.getElementById('my-reviews-list');
     if (!container || !currentUser) return;
