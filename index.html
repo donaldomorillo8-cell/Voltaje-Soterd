@@ -93,12 +93,12 @@
         <main class="content-container">
             <!-- SECCIÓN INFORMACIÓN -->
             <section id="info" class="section active">
-                <div class="hero-banner glass">
-                    <div class="hero-badge"><i class="fa-solid fa-fire"></i> #1 en recursos MTA:SA de República Dominicana</div>
-                    <h2>MTA:SA DEVELOPMENT <span>NEXT-GEN</span></h2>
-                    <p>Optimización extrema, bases de datos eficientes e interfaces CEF avanzadas creadas por desarrolladores dominicanos para llevar tu servidor al siguiente nivel.</p>
+                <div class="hero-banner">
+                    <div class="hero-badge"><i class="fa-solid fa-circle" style="font-size:8px;"></i> Prueba antes de comprar <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.75rem;"></i></div>
+                    <h2>Basta de scripts amateurs.<br>Usa sistemas hechos por <span>quienes entienden de MTA</span></h2>
+                    <p>Código optimizado, seguridad real y soporte especializado por desarrolladores dominicanos para servidores exigentes.</p>
                     <div class="hero-cta-group">
-                        <button class="btn-cta-primary" onclick="showSection('tienda', document.querySelectorAll('.nav-btn')[1])"><i class="fa-solid fa-store"></i> Explorar Tienda</button>
+                        <button class="btn-cta-primary" onclick="showSection('tienda', document.querySelectorAll('.nav-btn')[1])"><i class="fa-solid fa-store"></i> Ver Productos</button>
                         <button class="btn-cta-secondary" onclick="showSection('creadores', document.querySelectorAll('.nav-btn')[2])"><i class="fa-solid fa-code"></i> Conocer al Equipo</button>
                     </div>
                 </div>
@@ -154,6 +154,14 @@
                         <p>Los usuarios más activos de la comunidad Voltaje Stores.</p>
                     </div>
                     <div id="ranking-list" class="ranking-list"></div>
+                </div>
+
+                <div class="reviews-section">
+                    <div class="section-header">
+                        <h2>LO QUE DICE <span>LA COMUNIDAD</span></h2>
+                        <p>Comentarios reales de quienes ya usan nuestros recursos.</p>
+                    </div>
+                    <div id="reviews-list" class="reviews-grid"></div>
                 </div>
             </section>
 
@@ -246,6 +254,7 @@
                         <button class="profile-tab-btn active" onclick="switchProfileTab('edit', this)"><i class="fa-solid fa-user-pen"></i> Editar Perfil</button>
                         <button class="profile-tab-btn" onclick="switchProfileTab('purchases', this)"><i class="fa-solid fa-box-open"></i> Productos Obtenidos</button>
                         <button class="profile-tab-btn" onclick="switchProfileTab('downloads', this)"><i class="fa-solid fa-download"></i> Enlaces de Descarga</button>
+                        <button class="profile-tab-btn" onclick="switchProfileTab('reviews', this)"><i class="fa-solid fa-star"></i> Dejar Reseña</button>
                     </div>
 
                     <!-- Contenido Perfil -->
@@ -276,6 +285,32 @@
                         <div id="tab-downloads" class="profile-tab-content">
                             <h3>Enlaces Directos de Descarga</h3>
                             <ul id="downloads-list" class="downloads-list"></ul>
+                        </div>
+
+                        <!-- 4. Dejar Reseña -->
+                        <div id="tab-reviews" class="profile-tab-content">
+                            <h3>Cuéntale a la comunidad tu experiencia</h3>
+                            <form id="add-review-form">
+                                <div class="form-group">
+                                    <label>Tu calificación</label>
+                                    <div id="star-rating-input" class="star-rating-input">
+                                        <i class="fa-solid fa-star" data-value="1"></i>
+                                        <i class="fa-solid fa-star" data-value="2"></i>
+                                        <i class="fa-solid fa-star" data-value="3"></i>
+                                        <i class="fa-solid fa-star" data-value="4"></i>
+                                        <i class="fa-solid fa-star" data-value="5"></i>
+                                    </div>
+                                    <input type="hidden" id="review-rating-value" value="5">
+                                </div>
+                                <div class="form-group">
+                                    <label>Tu comentario</label>
+                                    <textarea id="review-text" rows="4" placeholder="¿Qué te pareció Voltaje Stores?" required></textarea>
+                                </div>
+                                <button type="submit" class="btn-glow">PUBLICAR RESEÑA</button>
+                            </form>
+
+                            <h3 style="margin-top:35px;">Tus reseñas publicadas</h3>
+                            <div id="my-reviews-list" class="reviews-grid"></div>
                         </div>
                     </div>
                 </div>

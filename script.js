@@ -24,6 +24,8 @@ let userPurchases = JSON.parse(localStorage.getItem('voltaje_purchases')) || {};
 let registeredUsers = JSON.parse(localStorage.getItem('voltaje_users')) || [];
 // Administradores añadidos manualmente desde el Panel Creador (además de los CREATORS base)
 let extraAdmins = JSON.parse(localStorage.getItem('voltaje_extra_admins')) || [];
+// Reseñas dejadas por los usuarios en su perfil, mostradas en "Lo que dice la comunidad"
+let reviews = JSON.parse(localStorage.getItem('voltaje_reviews')) || [];
 
 // 1. INICIAR SESIÓN CON DISCORD
 function loginWithDiscord() {
@@ -81,6 +83,8 @@ function restoreSession() {
     renderUsers();
     renderOwnedProducts();
     renderRanking();
+    renderReviews();
+    renderMyReviews();
     updateCart();
 }
 
@@ -137,6 +141,8 @@ function setupUserSession(discordUser) {
     renderUsers();
     renderOwnedProducts();
     renderRanking();
+    renderReviews();
+    renderMyReviews();
     updateCart();
 }
 
@@ -651,5 +657,133 @@ function renderUsers() {
             </div>
         `;
         list.appendChild(li);
+    });
+}
+
+// ===================== RESEÑAS DE LA COMUNIDAD =====================
+
+// Devuelve un bloque de <i> de estrellas (llenas/vacías) para una calificación 1-5
+function buildStarsHtml(rating) {
+    let html = '';
+    for (let i = 1; i <= 5; i++) {
+        html += i <= rating ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>';
+    }
+    return html;
+}
+
+// Selector de estrellas interactivo del formulario "Dejar Reseña"
+const starRatingInput = document.getElementById('star-rating-input');
+if (starRatingInput) {
+    const ratingHiddenInput = document.getElementById('review-rating-value');
+    const stars = starRatingInput.querySelectorAll('i');
+
+    function paintStars(value) {
+        stars.forEach(star => {
+            star.classList.toggle('active', Number(star.dataset.value) <= value);
+        });
+    }
+
+    paintStars(Number(ratingHiddenInput.value));
+
+    stars.forEach(star => {
+        star.addEventListener('click', () => {
+            const value = Number(star.dataset.value);
+            ratingHiddenInput.value = value;
+            paintStars(value);
+        });
+        star.addEventListener('mouseenter', () => paintStars(Number(star.dataset.value)));
+    });
+    starRatingInput.addEventListener('mouseleave', () => paintStars(Number(ratingHiddenInput.value)));
+}
+
+// ENVIAR UNA NUEVA RESEÑA DESDE EL PERFIL
+const addReviewForm = document.getElementById('add-review-form');
+if (addReviewForm) {
+    addReviewForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!currentUser) return alert("Debes iniciar sesión para dejar una reseña.");
+
+        const rating = Number(document.getElementById('review-rating-value').value) || 5;
+        const text = document.getElementById('review-text').value.trim();
+        if (!text) return;
+
+        const newReview = {
+            id: Date.now(),
+            userId: currentUser.id,
+            username: currentUser.username,
+            avatar: currentUser.avatar,
+            rating: rating,
+            text: text,
+            date: new Date().toLocaleDateString()
+        };
+
+        reviews.unshift(newReview);
+        localStorage.setItem('voltaje_reviews', JSON.stringify(reviews));
+
+        addReviewForm.reset();
+        document.getElementById('review-rating-value').value = 5;
+        if (starRatingInput) paintStars(5);
+
+        renderReviews();
+        renderMyReviews();
+        alert("¡Gracias por tu reseña! Ya está publicada.");
+    });
+}
+
+// RENDER: reseñas de toda la comunidad (sección de Inicio)
+function renderReviews() {
+    const container = document.getElementById('reviews-list');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (reviews.length === 0) {
+        container.innerHTML = '<p class="review-card-empty">Aún no hay reseñas. ¡Sé el primero en dejar una desde tu perfil!</p>';
+        return;
+    }
+
+    reviews.slice(0, 9).forEach(rev => {
+        const card = document.createElement('div');
+        card.className = 'review-card glass';
+        card.innerHTML = `
+            <div class="review-card-header">
+                <img src="${rev.avatar}" alt="${escapeHtml(rev.username)}">
+                <div>
+                    <strong>${escapeHtml(rev.username)}</strong>
+                    <div class="review-stars">${buildStarsHtml(rev.rating)}</div>
+                </div>
+            </div>
+            <p>${escapeHtml(rev.text)}</p>
+        `;
+        container.appendChild(card);
+    });
+}
+
+// RENDER: solo las reseñas del usuario actual (pestaña "Dejar Reseña" del perfil)
+function renderMyReviews() {
+    const container = document.getElementById('my-reviews-list');
+    if (!container || !currentUser) return;
+    container.innerHTML = '';
+
+    const mine = reviews.filter(r => r.userId === currentUser.id);
+
+    if (mine.length === 0) {
+        container.innerHTML = '<p class="review-card-empty">Todavía no has publicado ninguna reseña.</p>';
+        return;
+    }
+
+    mine.forEach(rev => {
+        const card = document.createElement('div');
+        card.className = 'review-card glass';
+        card.innerHTML = `
+            <div class="review-card-header">
+                <img src="${rev.avatar}" alt="${escapeHtml(rev.username)}">
+                <div>
+                    <strong>${escapeHtml(rev.username)}</strong>
+                    <div class="review-stars">${buildStarsHtml(rev.rating)}</div>
+                </div>
+            </div>
+            <p>${escapeHtml(rev.text)}</p>
+        `;
+        container.appendChild(card);
     });
 }
