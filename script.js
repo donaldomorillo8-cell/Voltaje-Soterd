@@ -6,6 +6,46 @@ const REDIRECT_URI = 'https://voltaje-soterd.vercel.app/';
 const PAYPAL_BUSINESS_EMAIL = 'morilloysaia6@gmail.com';
 const PAYPAL_CURRENCY = 'USD';
 
+// =================================================================
+// CONFIGURACIÓN DEL WEBHOOK AL BOT DE DISCORD
+// =================================================================
+// URL pública donde esté corriendo tu bot (index.js). NO puede ser Vercel,
+// porque un bot de Discord necesita estar encendido 24/7 (usa Railway, Render, una VPS, etc).
+// Debe apuntar exactamente a la ruta /webhook-compra de tu bot.
+const DISCORD_BOT_WEBHOOK_URL = 'https://TU-DOMINIO-DEL-BOT.com/webhook-compra';
+// Debe ser IDÉNTICO al valor "webhookSecret" que pusiste en el config.json del bot.
+const DISCORD_BOT_WEBHOOK_SECRET = '4a3cf4aa49d0af6e7e5cb8a4795dc41beacc5af65077daf3';
+
+// Avisa al bot de Discord para que publique el embed en el canal de compras (#1525517331323949197),
+// tanto si el recurso fue pagado como si fue obtenido gratis.
+async function notificarCompraDiscord(item, opciones = {}) {
+    if (!DISCORD_BOT_WEBHOOK_URL || DISCORD_BOT_WEBHOOK_URL.includes('TU-DOMINIO-DEL-BOT')) {
+        console.warn('⚠️ DISCORD_BOT_WEBHOOK_URL no está configurada todavía. No se notificará al bot.');
+        return;
+    }
+
+    try {
+        await fetch(DISCORD_BOT_WEBHOOK_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-voltaje-secret': DISCORD_BOT_WEBHOOK_SECRET
+            },
+            body: JSON.stringify({
+                clienteId: currentUser ? currentUser.id : null,
+                producto: item.name,
+                total: item.isFree ? 0 : item.price,
+                esGratis: !!item.isFree,
+                storeName: 'Voltaje Store',
+                imageUrl: item.image || undefined,
+                ...opciones
+            })
+        });
+    } catch (err) {
+        console.error('No se pudo notificar la compra al bot de Discord:', err);
+    }
+}
+
 // CREADORES AUTORIZADOS PARA EL PANEL ADMIN (BASE, NO EDITABLE DESDE LA APP)
 const CREATORS = [
     "x_donald",
@@ -408,6 +448,8 @@ function unlockFreeResource(item) {
         console.error("No se pudo guardar la compra gratis:", err);
     }
 
+    notificarCompraDiscord(item);
+
     renderOwnedProducts();
     renderRanking();
 
@@ -488,7 +530,10 @@ function checkout() {
     freeItems.forEach(item => {
         if (!userPurchases[currentUser.id]) userPurchases[currentUser.id] = [];
         const yaLoTiene = userPurchases[currentUser.id].some(p => String((p && p.id) ?? p) === String(item.id));
-        if (!yaLoTiene) userPurchases[currentUser.id].push(item.id);
+        if (!yaLoTiene) {
+            userPurchases[currentUser.id].push(item.id);
+            notificarCompraDiscord(item);
+        }
     });
 
     if (freeItems.length > 0) {
@@ -558,6 +603,7 @@ function handlePaypalReturn() {
                 // Guardamos solo el ID de la compra, no el objeto completo con la imagen en base64,
                 // para no llenar la cuota de localStorage.
                 userPurchases[currentUser.id].push(purchasedId);
+                if (item) notificarCompraDiscord(item);
             }
         });
 
