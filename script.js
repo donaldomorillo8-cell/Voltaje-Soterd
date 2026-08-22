@@ -212,7 +212,7 @@ function switchProfileTab(tabName, btn) {
 function initProfileEvents() {
     const editForm = document.getElementById('edit-profile-form');
     if (editForm) {
-        editForm.addEventListener('submit', (e) => {
+        editForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!currentUser) return alert("Debes iniciar sesión.");
 
@@ -220,11 +220,13 @@ function initProfileEvents() {
             const fileInput = document.getElementById('profile-input-avatar');
 
             if (fileInput.files && fileInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    saveProfileChanges(newUsername, e.target.result);
-                };
-                reader.readAsDataURL(fileInput.files[0]);
+                try {
+                    const avatarComprimido = await comprimirImagen(fileInput.files[0], 300, 0.75);
+                    saveProfileChanges(newUsername, avatarComprimido);
+                } catch (err) {
+                    console.error("Error al procesar la foto de perfil:", err);
+                    alert("No se pudo procesar la imagen seleccionada. Intenta con otra foto.");
+                }
             } else {
                 saveProfileChanges(newUsername, currentUser.avatar);
             }
@@ -236,10 +238,16 @@ function saveProfileChanges(username, avatar) {
     currentUser.username = username;
     currentUser.avatar = avatar;
 
-    localStorage.setItem(`voltaje_profile_${currentUser.id}`, JSON.stringify({
-        username: username,
-        avatar: avatar
-    }));
+    try {
+        localStorage.setItem(`voltaje_profile_${currentUser.id}`, JSON.stringify({
+            username: username,
+            avatar: avatar
+        }));
+    } catch (err) {
+        console.error("No se pudo guardar el perfil:", err);
+        alert("No se pudo guardar la foto de perfil: el almacenamiento del navegador está lleno.");
+        return;
+    }
 
     // Actualizar usuario en lista global
     const idx = registeredUsers.findIndex(u => u.id === currentUser.id);
@@ -596,9 +604,33 @@ function renderOwnedProducts() {
 
 
 // PANEL ADMIN: PUBLICAR RECURSO
+// Comprime/redimensiona una imagen antes de guardarla en base64, para no llenar
+// la cuota de localStorage con fotos originales de varios MB.
+function comprimirImagen(file, maxAncho = 800, calidad = 0.72) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const escala = Math.min(1, maxAncho / img.width);
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(img.width * escala);
+                canvas.height = Math.round(img.height * escala);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', calidad));
+            };
+            img.onerror = () => reject(new Error("No se pudo leer la imagen seleccionada."));
+            img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+        reader.readAsDataURL(file);
+    });
+}
+
 const addResourceForm = document.getElementById('add-resource-form');
 if (addResourceForm) {
-    addResourceForm.addEventListener('submit', (e) => {
+    addResourceForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const name = document.getElementById('res-name').value;
@@ -610,14 +642,18 @@ if (addResourceForm) {
 
         if (!imageFile) return alert("Por favor selecciona una imagen desde tu dispositivo.");
 
-        const reader = new FileReader();
-        reader.onload = function(event) {
+        const submitBtn = addResourceForm.querySelector('button[type="submit"]');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "PUBLICANDO..."; }
+
+        try {
+            const imagenComprimida = await comprimirImagen(imageFile);
+
             const newRes = {
                 id: Date.now(),
                 name: name,
                 category: category,
                 price: price,
-                image: event.target.result,
+                image: imagenComprimida,
                 link: link,
                 desc: desc
             };
@@ -629,9 +665,16 @@ if (addResourceForm) {
             addResourceForm.reset();
             renderResources('all');
             renderAdminResources();
-        };
-
-        reader.readAsDataURL(imageFile);
+        } catch (err) {
+            console.error("Error al publicar recurso:", err);
+            if (err && err.name === 'QuotaExceededError') {
+                alert("No se pudo publicar: el almacenamiento del navegador está lleno. Elimina algún recurso viejo desde 'Gestionar Recursos Publicados' o usa una imagen más liviana, y vuelve a intentar.");
+            } else {
+                alert("No se pudo publicar el recurso: " + (err && err.message ? err.message : "error desconocido."));
+            }
+        } finally {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = "PUBLICAR EN TIENDA"; }
+        }
     });
 }
 
