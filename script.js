@@ -265,32 +265,29 @@ function renderResources(filter, btn) {
 }
 
 function initCartEvents() {
-    const grid = document.getElementById('resources-grid');
-    if (grid) {
-        grid.addEventListener('click', (e) => {
-            const target = e.target.closest('[data-action]');
-            if (!target) return;
+    document.body.addEventListener('click', (e) => {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
 
-            const id = Number(target.dataset.id);
-            if (target.dataset.action === 'open') {
-                openResourceModal(id);
-            } else if (target.dataset.action === 'add') {
-                addToCart(id);
-            }
-        });
-    }
+        const id = target.dataset.id;
+        if (target.dataset.action === 'open') {
+            openResourceModal(id);
+        } else if (target.dataset.action === 'add') {
+            addToCart(id);
+        }
+    });
 
     const modalAddBtn = document.getElementById('modal-add-btn');
     if (modalAddBtn) {
         modalAddBtn.addEventListener('click', () => {
-            const id = Number(modalAddBtn.dataset.id);
-            if (!Number.isNaN(id)) addToCart(id);
+            const id = modalAddBtn.dataset.id;
+            if (id) addToCart(id);
         });
     }
 }
 
 function openResourceModal(id) {
-    const res = resources.find(r => r.id === id);
+    const res = resources.find(r => String(r.id) === String(id));
     if (!res) return;
 
     document.getElementById('modal-res-image').src = res.image;
@@ -315,8 +312,9 @@ function filterResources(category, btn) {
 }
 
 function addToCart(id) {
-    const item = resources.find(r => r.id === id);
+    const item = resources.find(r => String(r.id) === String(id));
     if (!item) {
+        console.error("addToCart: no se encontró el recurso con id", id, "resources actuales:", resources);
         alert("Ese recurso ya no está disponible.");
         return;
     }

@@ -347,7 +347,7 @@ body {
     border-radius: 20px;
     background-image:
         linear-gradient(180deg, rgba(3,4,10,0.55) 0%, rgba(3,4,10,0.78) 55%, rgba(6,8,18,0.95) 100%),
-        url('assets/hero-bg.jpg');
+        url('hero-bg.jpg');
     background-size: cover;
     background-position: center;
     border: 1px solid var(--glass-border);
