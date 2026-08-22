@@ -24,6 +24,38 @@ let registeredUsers = JSON.parse(localStorage.getItem('voltaje_users')) || [];
 let extraAdmins = JSON.parse(localStorage.getItem('voltaje_extra_admins')) || [];
 let reviews = JSON.parse(localStorage.getItem('voltaje_reviews')) || [];
 
+// MIGRACIÓN: si el carrito o las compras quedaron guardados con objetos completos
+// (versión vieja, que llenaba la cuota de localStorage por guardar la imagen en base64
+// una y otra vez), los reducimos a solo IDs para liberar espacio.
+(function migrarAlmacenamientoLiviano() {
+    try {
+        let cambiado = false;
+
+        if (cart.some(entry => entry && typeof entry === 'object')) {
+            cart = cart.map(entry => (entry && typeof entry === 'object') ? entry.id : entry);
+            cambiado = true;
+        }
+
+        Object.keys(userPurchases).forEach(uid => {
+            const list = userPurchases[uid] || [];
+            if (list.some(entry => entry && typeof entry === 'object')) {
+                userPurchases[uid] = list.map(entry => (entry && typeof entry === 'object') ? entry.id : entry);
+                cambiado = true;
+            }
+        });
+
+        if (cambiado) {
+            localStorage.setItem('voltaje_cart', JSON.stringify(cart));
+            localStorage.setItem('voltaje_purchases', JSON.stringify(userPurchases));
+        }
+    } catch (err) {
+        // Si el propio localStorage está lleno, lo vaciamos para que el sitio vuelva a funcionar.
+        console.error("No se pudo migrar el almacenamiento, limpiando carrito/compras corruptas:", err);
+        cart = [];
+        localStorage.removeItem('voltaje_cart');
+    }
+})();
+
 // 1. INICIAR SESIÓN CON DISCORD
 function loginWithDiscord() {
     const cleanClientId = CLIENT_ID.trim();
@@ -319,16 +351,36 @@ function addToCart(id) {
         return;
     }
 
-    cart.push(item);
-    localStorage.setItem('voltaje_cart', JSON.stringify(cart));
+    // Solo guardamos el ID en localStorage (no la imagen completa) para no llenar la cuota de almacenamiento.
+    cart.push(item.id);
+    try {
+        localStorage.setItem('voltaje_cart', JSON.stringify(cart));
+    } catch (err) {
+        cart.pop();
+        console.error("No se pudo guardar el carrito:", err);
+        alert("No se pudo agregar el producto: el almacenamiento del navegador está lleno. Intenta liberar espacio o usa otro navegador.");
+        return;
+    }
     updateCart();
     closeResourceModal();
     alert(`"${item.name}" fue agregado al carrito.`);
 }
 
+function getCartItems() {
+    // cart puede contener ids (nuevo formato) o, por compatibilidad con datos viejos, objetos completos.
+    return cart
+        .map(entry => {
+            const id = (entry && typeof entry === 'object') ? entry.id : entry;
+            return resources.find(r => String(r.id) === String(id));
+        })
+        .filter(Boolean);
+}
+
 function updateCart() {
+    const items = getCartItems();
+
     const countEl = document.getElementById('cart-count');
-    if (countEl) countEl.innerText = cart.length;
+    if (countEl) countEl.innerText = items.length;
 
     const container = document.getElementById('cart-items');
     if (!container) return;
@@ -336,11 +388,11 @@ function updateCart() {
     container.innerHTML = '';
     let total = 0;
 
-    if(cart.length === 0) {
+    if(items.length === 0) {
         container.innerHTML = '<p style="color:var(--text-muted)">El carrito está totalmente vacío.</p>';
     }
 
-    cart.forEach((item, index) => {
+    items.forEach((item, index) => {
         total += item.price;
         const row = document.createElement('div');
         row.style.cssText = "display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:rgba(0,0,0,0.3); padding:10px 15px; border-radius:8px;";
@@ -359,18 +411,27 @@ function updateCart() {
 }
 
 function removeFromCart(index) {
-    cart.splice(index, 1);
+    // El índice viene de la lista ya resuelta (getCartItems), así que lo mapeamos de vuelta al array real de ids.
+    const items = getCartItems();
+    const removed = items[index];
+    if (!removed) return;
+
+    const rawIndex = cart.findIndex(entry => {
+        const id = (entry && typeof entry === 'object') ? entry.id : entry;
+        return String(id) === String(removed.id);
+    });
+    if (rawIndex !== -1) cart.splice(rawIndex, 1);
+
     localStorage.setItem('voltaje_cart', JSON.stringify(cart));
     updateCart();
 }
 
 function checkout() {
-    if (cart.length === 0) return alert("Tu carrito está vacío.");
+    const items = getCartItems();
+    if (items.length === 0) return alert("Tu carrito está vacío.");
     if (!currentUser) return alert("Debes iniciar sesión con Discord.");
 
-    localStorage.setItem('voltaje_cart', JSON.stringify(cart));
-
-    const itemIds = cart.map(item => item.id);
+    const itemIds = items.map(item => item.id);
     const returnUrl = `${REDIRECT_URI}?voltaje_payment=success&items=${encodeURIComponent(JSON.stringify(itemIds))}`;
     const cancelUrl = `${REDIRECT_URI}?voltaje_payment=cancel`;
 
@@ -383,7 +444,7 @@ function checkout() {
     params.set('cancel_return', cancelUrl);
     params.set('no_shipping', '1');
 
-    cart.forEach((item, index) => {
+    items.forEach((item, index) => {
         const n = index + 1;
         params.set(`item_name_${n}`, item.name);
         params.set(`item_number_${n}`, item.id);
@@ -410,13 +471,20 @@ function handlePaypalReturn() {
         }
 
         itemIds.forEach(id => {
-            const item = resources.find(r => r.id === id) || savedCart.find(r => r.id === id);
-            if (item && !userPurchases[currentUser.id].some(p => p.id === item.id)) {
-                userPurchases[currentUser.id].push(item);
+            const item = resources.find(r => String(r.id) === String(id)) || savedCart.find(r => String((r && r.id) ?? r) === String(id));
+            const purchasedId = item ? item.id : id;
+            if (purchasedId && !userPurchases[currentUser.id].some(p => String((p && p.id) ?? p) === String(purchasedId))) {
+                // Guardamos solo el ID de la compra, no el objeto completo con la imagen en base64,
+                // para no llenar la cuota de localStorage.
+                userPurchases[currentUser.id].push(purchasedId);
             }
         });
 
-        localStorage.setItem('voltaje_purchases', JSON.stringify(userPurchases));
+        try {
+            localStorage.setItem('voltaje_purchases', JSON.stringify(userPurchases));
+        } catch (err) {
+            console.error("No se pudo guardar las compras:", err);
+        }
 
         cart = [];
         localStorage.removeItem('voltaje_cart');
@@ -470,9 +538,21 @@ function renderRanking() {
     });
 }
 
+function getOwnedResources() {
+    if (!currentUser) return [];
+    const purchaseEntries = userPurchases[currentUser.id] || [];
+    // Compatibilidad: entradas antiguas guardadas como objeto completo, y nuevas guardadas como id.
+    return purchaseEntries
+        .map(entry => {
+            const id = (entry && typeof entry === 'object') ? entry.id : entry;
+            return resources.find(r => String(r.id) === String(id)) || (entry && typeof entry === 'object' ? entry : null);
+        })
+        .filter(Boolean);
+}
+
 function renderOwnedProducts() {
     if (!currentUser) return;
-    const purchases = userPurchases[currentUser.id] || [];
+    const purchases = getOwnedResources();
 
     const grid = document.getElementById('owned-products-grid');
     const downloadsList = document.getElementById('downloads-list');
@@ -513,6 +593,7 @@ function renderOwnedProducts() {
         downloadsList.appendChild(li);
     });
 }
+
 
 // PANEL ADMIN: PUBLICAR RECURSO
 const addResourceForm = document.getElementById('add-resource-form');
