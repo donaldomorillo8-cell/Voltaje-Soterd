@@ -7,52 +7,77 @@ const PAYPAL_BUSINESS_EMAIL = 'morilloysaia6@gmail.com';
 const PAYPAL_CURRENCY = 'USD';
 
 // =================================================================
-// NOTIFICACIÓN DIRECTA A DISCORD (WEBHOOK NATIVO, SIN BOT)
+// CONFIGURACIÓN DEL WEBHOOK DE DISCORD (envío directo, sin bot)
 // =================================================================
-// Este webhook manda el mensaje directo al canal de compras (#1525517331323949197),
-// sin depender de que tu bot esté encendido ni de ningún túnel/hosting externo.
-const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1540557440385286184/-yR1b1IXixku7Ibmkso7r20gQbWQfRSuPyi_4vY4HOVMLR2GWm15FO-tRNduz_4T_4qX';
+// Webhook del canal de compras. Cualquiera que vea el código fuente de la
+// página puede ver esta URL, así que cualquier persona podría usarla para
+// mandar mensajes falsos a tu canal. Si eso llega a pasar, borra este
+// webhook desde Ajustes del canal > Integraciones > Webhooks y crea uno
+// nuevo, y actualiza el valor de aquí.
+const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1540737417428992030/adSMUmd7PbZB_PgcDQzogsij3LmSq6Wacytx_Y1T2mQ4GaiD0QV5CSKQjK9zRbXyM3L3';
 
-// Avisa a Discord (vía webhook nativo) cada vez que alguien obtiene un recurso gratis o completa un pago.
+// Convierte una imagen en base64 (data URL) a un Blob, para poder
+// adjuntarla como archivo al mensaje del webhook (Discord no puede leer
+// imágenes en base64 directamente desde una URL "data:").
+function dataURLToBlob(dataURL) {
+    const [header, base64] = dataURL.split(',');
+    const mimeMatch = header.match(/data:(.*?);base64/);
+    const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+    const binary = atob(base64);
+    const array = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) array[i] = binary.charCodeAt(i);
+    return new Blob([array], { type: mime });
+}
+
+// Manda el mensaje de compra realizada directamente al webhook de Discord
+// (canal de compras), tanto si el recurso fue pagado como si fue obtenido
+// gratis. Reproduce el formato: Cliente / Producto(s) / Total Pagado +
+// imagen del recurso.
 async function notificarCompraDiscord(item, opciones = {}) {
-    if (!DISCORD_WEBHOOK_URL) {
-        console.warn('⚠️ DISCORD_WEBHOOK_URL no está configurada todavía.');
-        return;
-    }
+    if (!DISCORD_WEBHOOK_URL) return;
 
+    const clienteId = currentUser ? currentUser.id : null;
     const esGratis = !!item.isFree;
-    const clienteId = (currentUser && currentUser.id) ? String(currentUser.id) : null;
-    const total = esGratis ? 0 : Number(item.price) || 0;
-    const nombreProducto = (item.name && String(item.name).trim()) ? String(item.name).trim() : 'Recurso sin nombre';
+    const totalTexto = esGratis ? 'GRATIS' : `$${Number(item.price).toFixed(2)} USD`;
 
     const embed = {
-        title: esGratis ? '🎁 Recurso Gratis Obtenido' : '✅ Compra Realizada Exitosamente',
-        description: `Nueva ${esGratis ? 'obtención gratuita' : 'compra'} realizada en **Voltaje Store**.`,
-        color: esGratis ? 0xF1C40F : 0x2ECC71,
+        title: '✅ Compra Realizada Exitosamente',
+        description: `Nueva compra realizada en ${opciones.storeName || 'Voltaje Stores'}.`,
+        color: 0x2ecc71,
         fields: [
-            { name: 'Cliente', value: clienteId ? `<@${clienteId}>` : '@RDneko', inline: false },
-            { name: 'Producto(s)', value: `• ${nombreProducto}`, inline: false },
-            { name: 'Total Pagado', value: esGratis ? 'GRATIS' : `$${total.toFixed(2)} USD`, inline: false }
+            { name: 'Cliente', value: clienteId ? `<@${clienteId}>` : 'Desconocido', inline: false },
+            { name: 'Producto(s)', value: `• ${item.name}`, inline: false },
+            { name: 'Total Pagado', value: totalTexto, inline: false }
         ],
-        footer: { text: `Voltaje Store • hoy a las ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` },
-        ...opciones
+        footer: { text: opciones.storeName || 'Voltaje Stores' },
+        timestamp: new Date().toISOString()
     };
 
-    // La imagen solo se añade si es una URL http(s) válida.
-    // Las imágenes en base64 (data:image/...) NO son válidas para Discord y causan error 400.
-    if (item.image && /^https?:\/\//i.test(item.image)) {
-        embed.image = { url: item.image };
-    }
+    const payload = {
+        username: opciones.storeName || 'Voltaje Stores',
+        embeds: [embed]
+    };
 
     try {
-        const resp = await fetch(DISCORD_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ embeds: [embed] })
-        });
-        if (!resp.ok) {
-            const detalle = await resp.text();
-            console.error('Discord rechazó el mensaje. Status:', resp.status, 'Detalle:', detalle);
+        if (item.image && item.image.startsWith('data:')) {
+            // Imagen subida desde el panel de admin (base64): se adjunta como archivo.
+            const blob = dataURLToBlob(item.image);
+            const filename = 'producto.png';
+            embed.image = { url: `attachment://${filename}` };
+
+            const formData = new FormData();
+            formData.append('payload_json', JSON.stringify(payload));
+            formData.append('files[0]', blob, filename);
+
+            await fetch(DISCORD_WEBHOOK_URL, { method: 'POST', body: formData });
+        } else {
+            // Imagen con URL pública normal.
+            if (item.image) embed.image = { url: item.image };
+            await fetch(DISCORD_WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
         }
     } catch (err) {
         console.error('No se pudo notificar la compra a Discord:', err);
