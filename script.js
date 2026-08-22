@@ -288,14 +288,16 @@ function renderResources(filter, btn) {
     list.forEach(res => {
         const card = document.createElement('div');
         card.className = 'res-card glass';
+        const precioHtml = res.isFree ? `<div class="res-price" style="color:#10b981;">GRATIS</div>` : `<div class="res-price">$${res.price.toFixed(2)} USD</div>`;
+        const botonTexto = res.isFree ? 'OBTENER GRATIS' : 'AÑADIR AL CARRITO';
         card.innerHTML = `
             <img src="${res.image}" alt="${escapeHtml(res.name)}" data-action="open" data-id="${res.id}">
             <div class="res-content">
                 <h3 data-action="open" data-id="${res.id}">${escapeHtml(res.name)}</h3>
                 <p>${escapeHtml(res.desc)}</p>
                 <button data-action="open" data-id="${res.id}" class="btn-details"><i class="fa-solid fa-circle-info"></i> VER DETALLES COMPLETOS</button>
-                <div class="res-price">$${res.price.toFixed(2)} USD</div>
-                <button data-action="add" data-id="${res.id}" class="btn-glow">AÑADIR AL CARRITO</button>
+                ${precioHtml}
+                <button data-action="add" data-id="${res.id}" class="btn-glow">${botonTexto}</button>
             </div>
         `;
         grid.appendChild(card);
@@ -335,8 +337,10 @@ function openResourceModal(id) {
     document.getElementById('modal-res-category').innerText = res.category.toUpperCase();
     document.getElementById('modal-res-name').innerText = res.name;
     document.getElementById('modal-res-desc').innerText = res.desc;
-    document.getElementById('modal-res-price').innerText = `$${res.price.toFixed(2)} USD`;
+    document.getElementById('modal-res-price').innerText = res.isFree ? 'GRATIS' : `$${res.price.toFixed(2)} USD`;
+    document.getElementById('modal-res-price').style.color = res.isFree ? '#10b981' : '';
     document.getElementById('modal-add-btn').dataset.id = res.id;
+    document.getElementById('modal-add-btn-text').innerText = res.isFree ? 'OBTENER GRATIS' : 'AÑADIR AL CARRITO';
 
     document.getElementById('resource-modal').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
@@ -359,6 +363,14 @@ function addToCart(id) {
         return;
     }
 
+    // RECURSOS GRATIS: se desbloquean al instante, sin pasar por el carrito ni por PayPal.
+    if (item.isFree) {
+        if (!currentUser) return alert("Debes iniciar sesión con Discord para obtener este recurso.");
+        unlockFreeResource(item);
+        closeResourceModal();
+        return;
+    }
+
     // Solo guardamos el ID en localStorage (no la imagen completa) para no llenar la cuota de almacenamiento.
     cart.push(item.id);
     try {
@@ -372,6 +384,36 @@ function addToCart(id) {
     updateCart();
     closeResourceModal();
     alert(`"${item.name}" fue agregado al carrito.`);
+}
+
+// Desbloquea un recurso gratis directamente en las compras del usuario, sin pago.
+function unlockFreeResource(item) {
+    if (!userPurchases[currentUser.id]) {
+        userPurchases[currentUser.id] = [];
+    }
+
+    const yaLoTiene = userPurchases[currentUser.id].some(p => String((p && p.id) ?? p) === String(item.id));
+    if (yaLoTiene) {
+        alert(`Ya tienes "${item.name}" desbloqueado. Búscalo en 'Mi Perfil'.`);
+        showSection('perfil');
+        switchProfileTab('purchases');
+        return;
+    }
+
+    userPurchases[currentUser.id].push(item.id);
+
+    try {
+        localStorage.setItem('voltaje_purchases', JSON.stringify(userPurchases));
+    } catch (err) {
+        console.error("No se pudo guardar la compra gratis:", err);
+    }
+
+    renderOwnedProducts();
+    renderRanking();
+
+    alert(`"${item.name}" fue desbloqueado gratis. Ya está disponible en 'Mi Perfil'.`);
+    showSection('perfil');
+    switchProfileTab('purchases');
 }
 
 function getCartItems() {
@@ -407,7 +449,7 @@ function updateCart() {
         row.innerHTML = `
             <div>
                 <strong>${escapeHtml(item.name)}</strong>
-                <div style="color:#10b981; font-size:0.9rem;">$${item.price.toFixed(2)} USD</div>
+                <div style="color:#10b981; font-size:0.9rem;">${item.isFree ? 'GRATIS' : `$${item.price.toFixed(2)} USD`}</div>
             </div>
             <button onclick="removeFromCart(${index})" style="background:var(--neon-secondary); color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
         `;
@@ -435,11 +477,42 @@ function removeFromCart(index) {
 }
 
 function checkout() {
-    const items = getCartItems();
-    if (items.length === 0) return alert("Tu carrito está vacío.");
+    const allItems = getCartItems();
+    if (allItems.length === 0) return alert("Tu carrito está vacío.");
     if (!currentUser) return alert("Debes iniciar sesión con Discord.");
 
-    const itemIds = items.map(item => item.id);
+    // Los recursos gratis se desbloquean directo, sin pasar por PayPal.
+    const freeItems = allItems.filter(item => item.isFree);
+    const paidItems = allItems.filter(item => !item.isFree);
+
+    freeItems.forEach(item => {
+        if (!userPurchases[currentUser.id]) userPurchases[currentUser.id] = [];
+        const yaLoTiene = userPurchases[currentUser.id].some(p => String((p && p.id) ?? p) === String(item.id));
+        if (!yaLoTiene) userPurchases[currentUser.id].push(item.id);
+    });
+
+    if (freeItems.length > 0) {
+        try { localStorage.setItem('voltaje_purchases', JSON.stringify(userPurchases)); } catch (err) { console.error(err); }
+        cart = cart.filter(entry => {
+            const id = (entry && typeof entry === 'object') ? entry.id : entry;
+            return !freeItems.some(f => String(f.id) === String(id));
+        });
+        localStorage.setItem('voltaje_cart', JSON.stringify(cart));
+        updateCart();
+        renderOwnedProducts();
+        renderRanking();
+    }
+
+    if (paidItems.length === 0) {
+        if (freeItems.length > 0) {
+            alert("¡Recursos gratis desbloqueados! Ya están disponibles en 'Mi Perfil'.");
+            showSection('perfil');
+            switchProfileTab('purchases');
+        }
+        return;
+    }
+
+    const itemIds = paidItems.map(item => item.id);
     const returnUrl = `${REDIRECT_URI}?voltaje_payment=success&items=${encodeURIComponent(JSON.stringify(itemIds))}`;
     const cancelUrl = `${REDIRECT_URI}?voltaje_payment=cancel`;
 
@@ -452,7 +525,7 @@ function checkout() {
     params.set('cancel_return', cancelUrl);
     params.set('no_shipping', '1');
 
-    items.forEach((item, index) => {
+    paidItems.forEach((item, index) => {
         const n = index + 1;
         params.set(`item_name_${n}`, item.name);
         params.set(`item_number_${n}`, item.id);
@@ -635,12 +708,15 @@ if (addResourceForm) {
 
         const name = document.getElementById('res-name').value;
         const category = document.getElementById('res-category').value;
-        const price = parseFloat(document.getElementById('res-price').value);
+        const isFree = document.getElementById('res-is-free').checked;
+        const priceRaw = document.getElementById('res-price').value;
+        const price = isFree ? 0 : parseFloat(priceRaw);
         const link = document.getElementById('res-link').value;
         const desc = document.getElementById('res-desc').value;
         const imageFile = document.getElementById('res-image-file').files[0];
 
         if (!imageFile) return alert("Por favor selecciona una imagen desde tu dispositivo.");
+        if (!isFree && (priceRaw === '' || isNaN(price))) return alert("Ingresa un precio, o marca la casilla de recurso gratis.");
 
         const submitBtn = addResourceForm.querySelector('button[type="submit"]');
         if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "PUBLICANDO..."; }
@@ -653,6 +729,7 @@ if (addResourceForm) {
                 name: name,
                 category: category,
                 price: price,
+                isFree: isFree,
                 image: imagenComprimida,
                 link: link,
                 desc: desc
@@ -706,7 +783,7 @@ function renderAdminResources() {
             <img src="${res.image}" alt="${escapeHtml(res.name)}" style="width:34px; height:34px; border-radius:8px; object-fit:cover;">
             <div style="flex-grow:1;">
                 <strong>${escapeHtml(res.name)}</strong>
-                <br><small style="color:var(--text-muted)">${res.category.toUpperCase()} · $${res.price.toFixed(2)} USD</small>
+                <br><small style="color:var(--text-muted)">${res.category.toUpperCase()} · ${res.isFree ? 'GRATIS' : `$${res.price.toFixed(2)} USD`}</small>
             </div>
             <button onclick="deleteResource(${res.id})" class="btn-icon-danger" title="Eliminar recurso"><i class="fa-solid fa-trash"></i></button>
         `;

@@ -433,7 +433,12 @@
                                         <option value="mapeo">Mapeo 3D</option>
                                         <option value="combo">Combo Pack</option>
                                     </select>
-                                    <input type="number" id="res-price" step="0.01" placeholder="Precio ($ USD)" required>
+                                    <input type="number" id="res-price" step="0.01" placeholder="Precio ($ USD)">
+                                </div>
+
+                                <div class="form-group" style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
+                                    <input type="checkbox" id="res-is-free" style="width:18px; height:18px; accent-color: var(--neon-primary); cursor:pointer;">
+                                    <label for="res-is-free" style="color: var(--neon-primary); cursor:pointer; margin:0;">Este recurso es GRATIS (no requiere pago)</label>
                                 </div>
                                 
                                 <!-- SELECCIÓN DE IMAGEN DESDE EL DISPOSITIVO -->
@@ -491,7 +496,7 @@
                 <p id="modal-res-desc"></p>
                 <div class="modal-footer">
                     <div id="modal-res-price" class="res-price"></div>
-                    <button id="modal-add-btn" class="btn-glow"><i class="fa-solid fa-cart-plus"></i> AÑADIR AL CARRITO</button>
+                    <button id="modal-add-btn" class="btn-glow"><i class="fa-solid fa-cart-plus"></i> <span id="modal-add-btn-text">AÑADIR AL CARRITO</span></button>
                 </div>
             </div>
         </div>
