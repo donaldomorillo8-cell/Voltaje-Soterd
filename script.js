@@ -12,7 +12,7 @@ const PAYPAL_CURRENCY = 'USD';
 // URL pública donde esté corriendo tu bot (index.js). NO puede ser Vercel,
 // porque un bot de Discord necesita estar encendido 24/7 (usa Railway, Render, una VPS, etc).
 // Debe apuntar exactamente a la ruta /webhook-compra de tu bot.
-const DISCORD_BOT_WEBHOOK_URL = 'https://TU-DOMINIO-DEL-BOT.com/webhook-compra';
+const DISCORD_BOT_WEBHOOK_URL = 'https://utilize-movies-merry-happy.trycloudflare.com/webhook-compra';
 // Debe ser IDÉNTICO al valor "webhookSecret" que pusiste en el config.json del bot.
 const DISCORD_BOT_WEBHOOK_SECRET = '4a3cf4aa49d0af6e7e5cb8a4795dc41beacc5af65077daf3';
 
