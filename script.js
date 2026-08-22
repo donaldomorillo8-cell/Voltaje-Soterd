@@ -21,8 +21,9 @@ async function notificarCompraDiscord(item, opciones = {}) {
     }
 
     const esGratis = !!item.isFree;
-    const clienteId = currentUser ? currentUser.id : null;
-    const total = esGratis ? 0 : item.price;
+    const clienteId = (currentUser && currentUser.id) ? String(currentUser.id) : null;
+    const total = esGratis ? 0 : Number(item.price) || 0;
+    const nombreProducto = (item.name && String(item.name).trim()) ? String(item.name).trim() : 'Recurso sin nombre';
 
     const embed = {
         title: esGratis ? '🎁 Recurso Gratis Obtenido' : '✅ Compra Realizada Exitosamente',
@@ -30,20 +31,29 @@ async function notificarCompraDiscord(item, opciones = {}) {
         color: esGratis ? 0xF1C40F : 0x2ECC71,
         fields: [
             { name: 'Cliente', value: clienteId ? `<@${clienteId}>` : '@RDneko', inline: false },
-            { name: 'Producto(s)', value: `• ${item.name}`, inline: false },
+            { name: 'Producto(s)', value: `• ${nombreProducto}`, inline: false },
             { name: 'Total Pagado', value: esGratis ? 'GRATIS' : `$${total.toFixed(2)} USD`, inline: false }
         ],
         footer: { text: `Voltaje Store • hoy a las ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` },
-        ...(item.image ? { image: { url: item.image } } : {}),
         ...opciones
     };
 
+    // La imagen solo se añade si es una URL http(s) válida.
+    // Las imágenes en base64 (data:image/...) NO son válidas para Discord y causan error 400.
+    if (item.image && /^https?:\/\//i.test(item.image)) {
+        embed.image = { url: item.image };
+    }
+
     try {
-        await fetch(DISCORD_WEBHOOK_URL, {
+        const resp = await fetch(DISCORD_WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ embeds: [embed] })
         });
+        if (!resp.ok) {
+            const detalle = await resp.text();
+            console.error('Discord rechazó el mensaje. Status:', resp.status, 'Detalle:', detalle);
+        }
     } catch (err) {
         console.error('No se pudo notificar la compra a Discord:', err);
     }
