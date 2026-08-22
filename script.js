@@ -7,42 +7,45 @@ const PAYPAL_BUSINESS_EMAIL = 'morilloysaia6@gmail.com';
 const PAYPAL_CURRENCY = 'USD';
 
 // =================================================================
-// CONFIGURACIÓN DEL WEBHOOK AL BOT DE DISCORD
+// NOTIFICACIÓN DIRECTA A DISCORD (WEBHOOK NATIVO, SIN BOT)
 // =================================================================
-// URL pública donde esté corriendo tu bot (index.js). NO puede ser Vercel,
-// porque un bot de Discord necesita estar encendido 24/7 (usa Railway, Render, una VPS, etc).
-// Debe apuntar exactamente a la ruta /webhook-compra de tu bot.
-const DISCORD_BOT_WEBHOOK_URL = 'https://utilize-movies-merry-happy.trycloudflare.com/webhook-compra';
-// Debe ser IDÉNTICO al valor "webhookSecret" que pusiste en el config.json del bot.
-const DISCORD_BOT_WEBHOOK_SECRET = '4a3cf4aa49d0af6e7e5cb8a4795dc41beacc5af65077daf3';
+// Este webhook manda el mensaje directo al canal de compras (#1525517331323949197),
+// sin depender de que tu bot esté encendido ni de ningún túnel/hosting externo.
+const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1540557440385286184/-yR1b1IXixku7Ibmkso7r20gQbWQfRSuPyi_4vY4HOVMLR2GWm15FO-tRNduz_4T_4qX';
 
-// Avisa al bot de Discord para que publique el embed en el canal de compras (#1525517331323949197),
-// tanto si el recurso fue pagado como si fue obtenido gratis.
+// Avisa a Discord (vía webhook nativo) cada vez que alguien obtiene un recurso gratis o completa un pago.
 async function notificarCompraDiscord(item, opciones = {}) {
-    if (!DISCORD_BOT_WEBHOOK_URL || DISCORD_BOT_WEBHOOK_URL.includes('TU-DOMINIO-DEL-BOT')) {
-        console.warn('⚠️ DISCORD_BOT_WEBHOOK_URL no está configurada todavía. No se notificará al bot.');
+    if (!DISCORD_WEBHOOK_URL) {
+        console.warn('⚠️ DISCORD_WEBHOOK_URL no está configurada todavía.');
         return;
     }
 
+    const esGratis = !!item.isFree;
+    const clienteId = currentUser ? currentUser.id : null;
+    const total = esGratis ? 0 : item.price;
+
+    const embed = {
+        title: esGratis ? '🎁 Recurso Gratis Obtenido' : '✅ Compra Realizada Exitosamente',
+        description: `Nueva ${esGratis ? 'obtención gratuita' : 'compra'} realizada en **Voltaje Store**.`,
+        color: esGratis ? 0xF1C40F : 0x2ECC71,
+        fields: [
+            { name: 'Cliente', value: clienteId ? `<@${clienteId}>` : '@RDneko', inline: false },
+            { name: 'Producto(s)', value: `• ${item.name}`, inline: false },
+            { name: 'Total Pagado', value: esGratis ? 'GRATIS' : `$${total.toFixed(2)} USD`, inline: false }
+        ],
+        footer: { text: `Voltaje Store • hoy a las ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` },
+        ...(item.image ? { image: { url: item.image } } : {}),
+        ...opciones
+    };
+
     try {
-        await fetch(DISCORD_BOT_WEBHOOK_URL, {
+        await fetch(DISCORD_WEBHOOK_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-voltaje-secret': DISCORD_BOT_WEBHOOK_SECRET
-            },
-            body: JSON.stringify({
-                clienteId: currentUser ? currentUser.id : null,
-                producto: item.name,
-                total: item.isFree ? 0 : item.price,
-                esGratis: !!item.isFree,
-                storeName: 'Voltaje Store',
-                imageUrl: item.image || undefined,
-                ...opciones
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ embeds: [embed] })
         });
     } catch (err) {
-        console.error('No se pudo notificar la compra al bot de Discord:', err);
+        console.error('No se pudo notificar la compra a Discord:', err);
     }
 }
 
